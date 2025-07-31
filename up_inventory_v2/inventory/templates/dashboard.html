@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f9f9f9;
+      margin: 0;
+      padding: 0;
+    }
+    .header {
+      background-color: #d9534f;
+      color: white;
+      padding: 15px;
+      text-align: center;
+    }
+    .container {
+      padding: 30px;
+      text-align: center;
+    }
+    .btn {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #5bc0de;
+      color: white;
+      text-decoration: none;
+      border-radius: 5px;
+      margin: 10px;
+    }
+    .btn.logout {
+      background-color: #f0ad4e;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>Hello {{ request.user.first_name }}!</h2>
+  </div>
+  <div class="container">
+    <p>Welcome to your inventory dashboard.</p>
+    {% if request.user.is_superuser %}
+      <a href="{% url 'signup' %}" class="btn">Create New User</a>
+    {% endif %}
+    <a href="{% url 'logout' %}" class="btn logout">Logout</a>
+  </div>
+</body>
+</html>

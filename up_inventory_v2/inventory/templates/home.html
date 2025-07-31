@@ -1,0 +1,85 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <link rel="stylesheet" href="{% static 'css/home.css' %}">
+  <title>Landing Page</title>
+</head>
+<body>
+  <header class="header">
+    <img src="{% static 'images/logo.png' %}" alt="Logo" class="logo" />
+    <form method="get" action="{% url 'login' %}">
+    <button type="submit" class="login-btn">Login</button>
+  </form>
+  </header>
+
+  <section class="hero">
+    <img src="{% static 'images/diliman7.jpg' %}" alt="" class="hero-background" />
+    <img src="{% static 'images/top-image.png' %}" alt="" class="hero-image" />
+    <div class="hero-text">UPITDC Equipment Inventory</div>
+  </section>
+
+  <section class="articles">
+    <article class="article" id="feature1">
+      <h2>UPITDC Equipment Inventory</h2>
+      <img src="https://via.placeholder.com/800x200?text=Feature+1" alt="Feature 1" />
+      <p>
+        Listing and management of equipments for all the employee.
+      </p>
+    </article>
+
+    <article class="article" id="feature2">
+      <h2>UPITDC Equipment Inventory</h2>
+      <img src="https://via.placeholder.com/800x200?text=Feature+2" alt="Feature 2" />
+      <p>
+        Listing and management of equipments for all the employee.
+      </p>
+    </article>
+
+    <article class="article" id="feature3">
+      <h2>UPITDC Equipment Inventory</h2>
+      <img src="https://via.placeholder.com/800x200?text=Feature+3" alt="Feature 3" />
+      <p>
+        Staff and employees may request to borrow available devices through the inventory 
+        system. All borrowed equipment is recorded properly, including 
+        the device name, borrower's full name, department, and the intended return date.
+      </p>
+    </article>
+  </section>
+
+  <footer class="footer">
+    © 2025 UPITDC. All rights reserved.
+  </footer>
+
+  <script>
+    // Smooth scroll for article navigation (if needed in future)
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+      anchor.addEventListener('click', function (e) {
+        e.preventDefault();
+        const target = document.querySelector(this.getAttribute('href'));
+        target.scrollIntoView({ behavior: 'smooth' });
+      });
+    });
+
+    // Scroll reveal effect
+    const articles = document.querySelectorAll('.article');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.style.opacity = 1;
+          entry.target.style.transform = 'translateY(0)';
+        }
+      });
+    }, { threshold: 0.2 });
+
+    articles.forEach(article => {
+      article.style.opacity = 0;
+      article.style.transform = 'translateY(20px)';
+      article.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+      observer.observe(article);
+    });
+  </script>
+</body>
+</html>
