@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/staff.css' %}">
+
+<!-- Edit Staff Modal -->
+<div id="editModal" class="modal">
+  <div class="card form-card modal-content">
+    <button class="modal-close-btn" onclick="closeModal()" aria-label="Close modal">&times;</button>
+    <div class="card-header">EDIT STAFF</div>
+    <form id="editStaffForm" method="post" class="staff-form">
+      {% csrf_token %}
+      <input type="hidden" name="id" id="edit-id" />
+      <p>
+        <label for="edit-full-name">Full Name:</label>
+        <input type="text" name="full_name" id="edit-full-name" required>
+      </p>
+      <p>
+        <label for="edit-email">Email:</label>
+        <input type="email" name="email" id="edit-email" required>
+      </p>
+      <p>
+        <label for="edit-status">Status:</label>
+        <select name="status" id="edit-status" required>
+          {% for value, label in form.fields.status.choices %}
+            <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </p>
+      <p>
+        <label for="edit-department">Department:</label>
+        <select name="department" id="edit-department">
+          {% for dept in departments %}
+          <option value="{{ dept.id }}">{{ dept.name }}</option>
+          {% endfor %}
+        </select>
+      </p>
+      <div class="modal-buttons">
+        <button type="submit" class="btn btn-update">Update Staff</button>
+        <button type="button" class="btn cancel-btn" onclick="closeModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="staff-container">
+
+  {% if user.is_superuser %}
+  <!-- Add Staff Form Card -->
+  <div class="card form-card">
+    <div class="card-header">ADD NEW STAFF</div>
+    <form action="{% url 'add_staff' %}" method="post" class="staff-form">
+      {% csrf_token %}
+      <p>
+        <label for="{{ form.full_name.id_for_label }}">Full Name:</label>
+        {{ form.full_name }}
+      </p>
+      <p>
+        <label for="{{ form.email.id_for_label }}">Email:</label>
+        {{ form.email }}
+      </p>
+      <p>
+        <label for="{{ form.status.id_for_label }}">Status:</label>
+        {{ form.status }}
+      </p>
+      <p>
+        <label for="{{ form.department.id_for_label }}">Department: (Chouse department)</label>
+        <select name="department" id="{{ form.department.id_for_label }}">
+          {% if departments %}
+            {% for dept in departments %}
+              <option value="{{ dept.id }}">{{ dept.name }}</option>
+            {% endfor %}
+          {% else %}
+            <option value="">No departments available</option>
+          {% endif %}
+        </select>
+      </p>
+      <button type="submit" class="btn submit-btn">Add Staff</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <!-- Staff Table Card -->
+  <div class="card table-card">
+    <div class="card-header">STAFF RECORDS</div>
+    
+    <div class="search-download-wrapper">
+      <form method="get" action="" class="search-form">
+        <input
+          type="text"
+          id="search"
+          name="q"
+          placeholder="Search staff..."
+          value="{{ query }}"
+          class="search-input"
+        />
+      </form>
+      <a href="{% url 'export_staff_excel' %}" class="btn btn-download">
+        Download Excel
+      </a>
+    </div>
+
+    <table class="staff-table">
+      <thead>
+        <tr>
+          <th>Full Name</th>
+          <th>Email</th>
+          <th>Status</th>
+          <th>Department</th>
+          {% if user.is_superuser %}
+          <th>Actions</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for staff in staff_records %}
+        <tr>
+          <td>{{ staff.full_name }}</td>
+          <td>{{ staff.email }}</td>
+          <td>{{ staff.status }}</td>
+          <td>{{ staff.department.name }}</td>
+          {% if user.is_superuser %}
+          <td class="action-style">
+            <a href="javascript:void(0);" 
+              class="btn edit-btn"
+              data-id="{{ staff.id }}"
+              data-full-name="{{ staff.full_name|escapejs }}"
+              data-email="{{ staff.email|escapejs }}"
+              data-status="{{ staff.status|escapejs }}"
+              data-department-id="{{ staff.department.id }}"
+              onclick="handleEditClick(this)">
+              Edit
+            </a>
+
+            <form action="{% url 'delete_staff' staff.pk %}" method="post" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger delete-btn" onclick="return confirm('Delete this staff?')">Delete</button>
+            </form>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">No staff found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  function handleEditClick(element) {
+    document.getElementById('edit-id').value = element.dataset.id;
+    document.getElementById('edit-full-name').value = element.dataset.fullName;
+    document.getElementById('edit-email').value = element.dataset.email;
+    document.getElementById('edit-status').value = element.dataset.status;
+    document.getElementById('edit-department').value = element.dataset.departmentId;
+    document.getElementById('editModal').style.display = 'flex';
+  }
+
+  function closeModal() {
+    document.getElementById('editModal').style.display = 'none';
+  }
+
+  document.getElementById('search').addEventListener('input', function() {
+    const filter = this.value.toLowerCase();
+    const rows = document.querySelectorAll('.staff-table tbody tr');
+    rows.forEach(row => {
+      const fullName = row.cells[0].textContent.toLowerCase();
+      const email = row.cells[1].textContent.toLowerCase();
+      const status = row.cells[2].textContent.toLowerCase();
+      const department = row.cells[3].textContent.toLowerCase();
+
+      if (
+        fullName.includes(filter) ||
+        email.includes(filter) ||
+        status.includes(filter) ||
+        department.includes(filter)
+      ) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  });
+</script>
+{% endblock %}

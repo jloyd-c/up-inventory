@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/inventory_return_delete_confirm.css' %}">
+
+<div class="modal" style="display: flex;">
+  <div class="card form-card modal-content">
+    <button class="modal-close-btn" onclick="window.history.back()" aria-label="Close modal">&times;</button>
+    <div class="card-header">Delete Returned Device Record</div>
+    <p>
+      Are you sure you want to delete the returned record for
+      <strong>{{ record.staff.full_name }} - {{ record.device.name }}</strong>?
+    </p>
+    <form method="post">
+      {% csrf_token %}
+      <div class="modal-buttons">
+        <button type="submit" class="btn btn-delete">Yes, Delete</button>
+        <button type="button" class="btn cancel-btn" onclick="window.history.back()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

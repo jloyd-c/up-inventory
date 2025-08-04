@@ -1,0 +1,165 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/device.css' %}">
+
+<!-- Edit Device Modal -->
+<div id="editModal" class="modal">
+  <div class="card form-card modal-content">
+    <button class="modal-close-btn" onclick="closeModal()" aria-label="Close modal">&times;</button>
+    <div class="card-header">EDIT DEVICE</div>
+    <form id="editDeviceForm" method="post" class="device-form">
+      {% csrf_token %}
+      <input type="hidden" name="id" id="edit-id" />
+      <p>
+        <label for="edit-name">Name:</label>
+        <input type="text" name="name" id="edit-name" required>
+      </p>
+      <p>
+        <label for="edit-model-brand">Model/Brand:</label>
+        <input type="text" name="model_brand" id="edit-model-brand" required>
+      </p>
+      <p>
+        <label for="edit-serial-number">Serial Number:</label>
+        <input type="text" name="serial_number" id="edit-serial-number" required>
+      </p>
+      <p>
+        <label for="edit-status">Status:</label>
+        <select name="status" id="edit-status" required>
+          {% for value, label in form.fields.status.choices %}
+            <option value="{{ value }}">{{ label }}</option>
+          {% endfor %}
+        </select>
+      </p>
+      <div class="modal-buttons">
+        <button type="submit" class="btn btn-update">Update Device</button>
+        <button type="button" class="btn cancel-btn" onclick="closeModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="device-container">
+
+  {% if request.user.is_superuser %}
+  <!-- Add Device Form Card -->
+  <div class="card form-card">
+    <div class="card-header">ADD NEW DEVICE</div>
+    <form action="{% url 'add_device' %}" method="post" class="device-form">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit" class="btn submit-btn">Add Device</button>
+    </form>
+  </div>
+  {% endif %}
+
+  <!-- Device Table Card -->
+  <div class="card table-card">
+    <div class="card-header">DEVICE RECORDS</div>
+    
+    <div class="search-download-wrapper">
+      <form method="get" action="" class="search-form">
+        <input
+          type="text"
+          id="search"
+          name="q"
+          placeholder="Search devices..."
+          value="{{ query }}"
+          class="search-input"
+        />
+      </form>
+
+      <a href="{% url 'export_device_excel' %}" class="btn btn-download">
+        Download Excel
+      </a>
+    </div>
+
+    <table class="device-table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Model/Brand</th>
+          <th>Serial Number</th>
+          <th>Status</th>
+          <th>Date Added</th>
+          {% if request.user.is_superuser %}
+          <th>Actions</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for device in devices %}
+        <tr>
+          <td>{{ device.name }}</td>
+          <td>{{ device.model_brand }}</td>
+          <td>{{ device.serial_number }}</td>
+          <td>{{ device.get_status_display }}</td>
+          <td>{{ device.created_at|date:"Y-m-d H:i" }}</td>
+          {% if request.user.is_superuser %}
+          <td class="action-style">
+            <a href="javascript:void(0);" 
+              class="btn edit-btn"
+              data-id="{{ device.id }}"
+              data-name="{{ device.name|escapejs }}"
+              data-model-brand="{{ device.model_brand|escapejs }}"
+              data-serial-number="{{ device.serial_number|escapejs }}"
+              data-status="{{ device.status|escapejs }}"
+              onclick="handleEditClick(this)">
+              Edit
+            </a>
+
+            <form action="{% url 'delete_device' device.pk %}" method="post" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-danger delete-btn" onclick="return confirm('Delete this device?')">Delete</button>
+            </form>
+          </td>
+          {% endif %}
+        </tr>
+        {% empty %}
+        <tr><td colspan="6">No devices found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  function handleEditClick(element) {
+    document.getElementById('edit-id').value = element.dataset.id;
+    document.getElementById('edit-name').value = element.dataset.name;
+    document.getElementById('edit-model-brand').value = element.dataset.modelBrand;
+    document.getElementById('edit-serial-number').value = element.dataset.serialNumber;
+    document.getElementById('edit-status').value = element.dataset.status;
+    document.getElementById('editModal').style.display = 'flex';
+  }
+
+  function closeModal() {     
+    document.getElementById('editModal').style.display = 'none';
+  }
+
+  document.getElementById('search').addEventListener('input', function() {
+    const filter = this.value.toLowerCase();
+    const rows = document.querySelectorAll('.device-table tbody tr');
+
+    rows.forEach(row => {
+      const name = row.cells[0].textContent.toLowerCase();
+      const modelBrand = row.cells[1].textContent.toLowerCase();
+      const serialNumber = row.cells[2].textContent.toLowerCase();
+      const status = row.cells[3].textContent.toLowerCase();
+
+      if (
+        name.includes(filter) ||
+        modelBrand.includes(filter) ||
+        serialNumber.includes(filter) ||
+        status.includes(filter)
+      ) {
+        row.style.display = '';
+      } else {
+        row.style.display = 'none';
+      }
+    });
+  });
+</script>
+
+{% endblock %}

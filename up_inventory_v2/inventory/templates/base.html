@@ -1,0 +1,155 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}My Django Project{% endblock %}</title>
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap"
+  />
+  <link rel="stylesheet" href="{% static 'css/base.css' %}" />
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="header-container">
+      <!-- Logo -->
+      <div class="logo">
+        <a href="{% url 'home' %}">
+          <img src="{% static 'images/logo.png' %}" alt="Logo" />
+        </a>
+      </div>
+
+      <!-- Navigation -->
+      <nav>
+        <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="{% url 'inventory' %}" class="{% if request.resolver_match.url_name == 'inventory' %}active{% endif %}">Inventory</a>
+        <a href="{% url 'staff' %}" class="{% if request.resolver_match.url_name == 'staff' %}active{% endif %}">Staff</a>
+        <a href="{% url 'devices' %}" class="{% if request.resolver_match.url_name == 'devices' %}active{% endif %}">Device</a>
+
+        <!-- Others dropdown -->
+<div class="dropdown">
+  <button class="dropbtn">Others</button>
+  <div class="dropdown-content">
+    {% if request.user.is_authenticated %}
+      {% if request.user.is_superuser %}
+        <a href="{% url 'signup' %}">Accounts</a>
+      {% endif %}
+      <a href="{% url 'department' %}">Department</a>
+      <a href="#">History</a>
+    {% endif %}
+  </div>
+</div>
+
+
+        <!-- Profile dropdown -->
+      <div class="dropdown">
+        <button class="dropbtn">
+          {{ request.user.full_name }}
+        </button>
+        <div class="dropdown-content">
+          <a href="{% url 'logout' %}">Logout</a>
+        </div>
+      </div>
+
+
+      <!-- Mobile Menu Toggle -->
+      <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Toggle menu">
+        <svg
+          width="24"
+          height="24"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobile-menu">
+      <a href="{% url 'dashboard' %}">Dashboard</a>
+      <a href="{% url 'inventory' %}">Inventory</a>
+      <a href="{% url 'staff' %}">Staff</a>
+      <a href="{% url 'devices' %}">Device</a>
+
+      <!-- Others dropdown -->
+      <div class="dropdown">
+        <button class="dropbtn">Others</button>
+        <div class="dropdown-content">
+          <a href="{% url 'department' %}">Department</a>
+          <a href="{% url 'signup' %}">Accounts</a>
+        </div>
+      </div>
+
+      <!-- Profile dropdown -->
+      <div class="dropdown">
+        <button class="dropbtn">Profile</button>
+        <div class="dropdown-content">
+          <a href="{% url 'logout' %}">Logout</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main>
+    {% block content %}
+    {% endblock %}
+  </main>
+
+  <!-- Footer -->
+  <footer>
+    <p>@UPITDC. All rights reserved.</p>
+  </footer>
+
+  <!-- JavaScript for Mobile Menu and Dropdowns -->
+  <script>
+    // Mobile menu toggle
+    document.getElementById('mobile-menu-toggle').addEventListener('click', function () {
+      document.getElementById('mobile-menu').classList.toggle('active');
+    });
+
+    // Dropdown toggles
+    document.addEventListener('DOMContentLoaded', function () {
+      const dropdowns = document.querySelectorAll('.dropdown');
+
+      dropdowns.forEach((dropdown) => {
+        const btn = dropdown.querySelector('.dropbtn');
+        const menu = dropdown.querySelector('.dropdown-content');
+
+        btn.addEventListener('click', function (e) {
+          e.preventDefault();
+          dropdown.classList.toggle('active');
+
+          // Close other dropdowns
+          dropdowns.forEach((otherDropdown) => {
+            if (otherDropdown !== dropdown) {
+              otherDropdown.classList.remove('active');
+            }
+          });
+        });
+
+        // Prevent dropdown from closing when clicking inside menu
+        menu.addEventListener('click', function (e) {
+          e.stopPropagation();
+        });
+      });
+
+      // Close dropdown if clicking outside
+      document.addEventListener('click', function (e) {
+        dropdowns.forEach((dropdown) => {
+          if (!dropdown.contains(e.target)) {
+            dropdown.classList.remove('active');
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,237 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/staff.css' %}">
+
+<div class="staff-container">
+
+  <!-- Signup / Create User Form Card -->
+  <div class="card form-card">
+    <div class="card-header">CREATE NEW USER</div>
+    <form method="post" class="staff-form" id="createUserForm">
+      {% csrf_token %}
+      <input type="hidden" name="create_user" value="1" />
+      <p>
+        <label for="staff_select">Select Staff (optional):</label>
+        <select name="staff" id="staff_select">
+          <option value="">Choose Staff</option>
+          {% for staff in form.fields.staff.queryset %}
+            <option value="{{ staff.id }}"
+                    data-email="{{ staff.email }}"
+                    data-fullname="{{ staff.full_name }}">
+              {{ staff.full_name }}
+            </option>
+          {% endfor %}
+        </select>
+      </p>
+      
+      <p>
+        <label for="id_email">Email:</label>
+        {{ form.email }}
+      </p>
+
+      <p>
+        <label for="id_full_name">Full Name:</label>
+        {{ form.full_name }}
+      </p>
+
+      <p>
+        <label for="id_password1">Password:</label>
+        {{ form.password1 }}
+      </p>
+
+      <p>
+        <label for="id_password2">Confirm Password:</label>
+        {{ form.password2 }}
+      </p>
+
+      <button type="submit" class="btn submit-btn">Create Account</button>
+    </form>
+  </div>
+
+  <!-- Users Table Card -->
+  <div class="card table-card">
+    <div class="card-header">USER ACCOUNTS</div>
+
+    <div class="search-download-wrapper">
+      <input type="text" id="search" placeholder="Search users..." class="search-input" />
+    </div>
+
+    <table class="staff-table" id="usersTable">
+      <thead>
+        <tr>
+          <th>Full Name</th>
+          <th>Email</th>
+          <th>Is Active</th>
+          <th>Is Superuser</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr data-user-id="{{ user.id }}" data-user-email="{{ user.email }}" data-user-fullname="{{ user.full_name }}">
+          <td>{{ user.full_name }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.is_active }}</td>
+          <td>{{ user.is_superuser }}</td>
+          <td>
+            <button class="btn btn-sm btn-primary edit-btn" type="button">Edit</button>
+            <button class="btn btn-sm btn-danger delete-btn" type="button">Delete</button>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">No users found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Edit User Modal -->
+<div id="editUserModal" class="modal" style="display:none;">
+  <div class="card form-card modal-content">
+    <span class="close" id="editClose">&times;</span>
+    <div class="card-header">Edit User</div>
+    <form id="editUserForm" method="post">
+      {% csrf_token %}
+      <input type="hidden" name="user_id" id="edit_user_id" />
+
+      <p>
+        <label for="edit_email">Email:</label>
+        <input type="email" name="email" id="edit_email" required />
+      </p>
+
+      <p>
+        <label for="edit_full_name">Full Name:</label>
+        <input type="text" name="full_name" id="edit_full_name" required />
+      </p>
+
+      <p>
+        <label for="edit_password1">New Password (leave blank to keep current):</label>
+        <input type="password" name="password1" id="edit_password1" />
+      </p>
+
+      <p>
+        <label for="edit_password2">Confirm New Password:</label>
+        <input type="password" name="password2" id="edit_password2" />
+      </p>
+
+      <button type="submit" class="btn submit-btn">Update User</button>
+      <button type="button" class="btn btn-secondary" id="editCancel">Cancel</button>
+    </form>
+  </div>
+</div>
+
+<!-- Delete User Modal -->
+<div id="deleteUserModal" class="modal" style="display:none;">
+  <div class="card form-card modal-content">
+    <span class="close" id="deleteClose">&times;</span>
+    <div class="card-header">Confirm Delete</div>
+    <p>Are you sure you want to delete user <strong id="deleteUserName"></strong>?</p>
+    <form id="deleteUserForm" method="post">
+      {% csrf_token %}
+      <input type="hidden" name="delete_user_id" id="delete_user_id" />
+      <button type="submit" class="btn btn-danger">Yes, Delete</button>
+      <button type="button" class="btn btn-secondary" id="deleteCancel">Cancel</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Autofill email and full name from selected staff
+  const staffSelect = document.getElementById('staff_select');
+  const emailInput = document.getElementById('id_email');
+  const fullNameInput = document.getElementById('id_full_name');
+
+  staffSelect.addEventListener('change', function () {
+    const selected = this.options[this.selectedIndex];
+    const fullName = selected.getAttribute('data-fullname') || '';
+    const email = selected.getAttribute('data-email') || '';
+
+    fullNameInput.value = fullName;
+    emailInput.value = email;
+  });
+
+  // Simple search/filter for users table
+  const searchInput = document.getElementById('search');
+  const table = document.getElementById('usersTable');
+  const rows = table.getElementsByTagName('tbody')[0].getElementsByTagName('tr');
+
+  searchInput.addEventListener('input', function() {
+    const filter = this.value.toLowerCase();
+    for (let i = 0; i < rows.length; i++) {
+      const fullName = rows[i].cells[0].textContent.toLowerCase();
+      const email = rows[i].cells[1].textContent.toLowerCase();
+      if (fullName.includes(filter) || email.includes(filter)) {
+        rows[i].style.display = '';
+      } else {
+        rows[i].style.display = 'none';
+      }
+    }
+  });
+
+  // Modal logic
+
+  // Edit Modal Elements
+  const editModal = document.getElementById('editUserModal');
+  const editCloseBtn = document.getElementById('editClose');
+  const editCancelBtn = document.getElementById('editCancel');
+  const editForm = document.getElementById('editUserForm');
+
+  // Delete Modal Elements
+  const deleteModal = document.getElementById('deleteUserModal');
+  const deleteCloseBtn = document.getElementById('deleteClose');
+  const deleteCancelBtn = document.getElementById('deleteCancel');
+  const deleteForm = document.getElementById('deleteUserForm');
+  const deleteUserNameSpan = document.getElementById('deleteUserName');
+
+  // Open edit modal & populate inputs
+  document.querySelectorAll('.edit-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const tr = button.closest('tr');
+      const userId = tr.dataset.userId;
+      const email = tr.dataset.userEmail;
+      const fullName = tr.dataset.userFullname;
+
+      document.getElementById('edit_user_id').value = userId;
+      document.getElementById('edit_email').value = email;
+      document.getElementById('edit_full_name').value = fullName;
+      document.getElementById('edit_password1').value = '';
+      document.getElementById('edit_password2').value = '';
+
+      editModal.style.display = 'block';
+    });
+  });
+
+  // Open delete modal & set user info
+  document.querySelectorAll('.delete-btn').forEach(button => {
+    button.addEventListener('click', () => {
+      const tr = button.closest('tr');
+      const userId = tr.dataset.userId;
+      const fullName = tr.dataset.userFullname;
+
+      document.getElementById('delete_user_id').value = userId;
+      deleteUserNameSpan.textContent = fullName;
+
+      deleteModal.style.display = 'block';
+    });
+  });
+
+  // Close modals handlers
+  editCloseBtn.onclick = () => editModal.style.display = 'none';
+  editCancelBtn.onclick = () => editModal.style.display = 'none';
+  deleteCloseBtn.onclick = () => deleteModal.style.display = 'none';
+  deleteCancelBtn.onclick = () => deleteModal.style.display = 'none';
+
+  // Close modals on outside click
+  window.onclick = function(event) {
+    if (event.target === editModal) {
+      editModal.style.display = 'none';
+    }
+    if (event.target === deleteModal) {
+      deleteModal.style.display = 'none';
+    }
+  };
+</script>
+{% endblock %}

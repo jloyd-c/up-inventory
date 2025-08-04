@@ -1,0 +1,75 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UPITDC Equipment Inventory</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto+Condensed:wght@400;700&display=swap" />
+  <link rel="stylesheet" href="{% static 'css/home.css' %}" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="header-container">
+      <div class="logo">
+        <img src="{% static 'images/logo.png' %}" alt="Logo" />
+      </div>
+      <div class="header-login">
+        <a href="{% url 'login' %}" class="header-login-btn">Login</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <img src="{% static 'images/diliman7.jpg' %}" alt="UP Diliman" class="hero-background" />
+    <div class="overlay"></div>
+    
+    <!-- Top Foreground Image -->
+    <img src="{% static 'images/top-image.png' %}" alt="Top Image" class="top-image" />
+
+    <!-- Hero Text -->
+    <div class="hero-text">
+      <h1>UPITDC Equipment Inventory</h1>
+      <form method="get" action="{% url 'login' %}">
+        <button class="login-btn" type="submit">Get Started</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Articles -->
+  <section class="articles">
+    <article class="article">
+      <h2>Real-Time Equipment Tracking</h2>
+      <img src="https://via.placeholder.com/800x200?text=Real-Time+Tracking" alt="Feature 1" />
+      <p>
+        Seamlessly manage and track equipment assigned to employees across departments.
+      </p>
+    </article>
+
+    <article class="article">
+      <h2>Borrow and Return Made Easy</h2>
+      <img src="https://via.placeholder.com/800x200?text=Borrow+and+Return" alt="Feature 2" />
+      <p>
+        Staff can borrow and return devices with clear logs of usage, dates, and remarks.
+      </p>
+    </article>
+
+    <article class="article">
+      <h2>Department-Based Management</h2>
+      <img src="https://via.placeholder.com/800x200?text=Department+Management" alt="Feature 3" />
+      <p>
+        Structured inventory aligned with departments for proper accountability.
+      </p>
+    </article>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <p>© 2025 UPITDC. All rights reserved.</p>
+  </footer>
+
+</body>
+</html>

@@ -1,0 +1,239 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'css/inventory.css' %}">
+
+<!-- Borrow Modal -->
+<div id="borrowModal" class="modal">
+  <div class="card form-card modal-content">
+    <button class="modal-close-btn" onclick="closeModal('borrowModal')">&times;</button>
+    <div class="card-header">BORROW DEVICE</div>
+    <form method="post" class="staff-form">
+      {% csrf_token %}
+      <input type="hidden" name="borrow_submit" value="1">
+
+      <p>
+        <label for="staff_select">Staff:</label>
+        <select name="staff" id="staff_select" onchange="fillStaffInfo()" required>
+          <option value="">Select staff</option>
+          {% for staff in active_staff %}
+          <option value="{{ staff.id }}" data-name="{{ staff.full_name }}" data-department="{{ staff.department.name }}">
+            {{ staff.full_name }} ({{ staff.department.name }})
+          </option>
+          {% endfor %}
+        </select>
+      </p>
+      <p><label>Name of Staff:</label><input type="text" id="staff_name" readonly></p>
+      <p><label>Department:</label><input type="text" id="staff_department" readonly></p>
+
+      <p>
+        <label for="device_select">Device:</label>
+        <select name="device" id="device_select" onchange="fillDeviceInfo()" required>
+          <option value="">Select device</option>
+          {% for device in available_devices %}
+          <option value="{{ device.id }}" data-name="{{ device.name }}" data-model="{{ device.model_brand }}" data-serial="{{ device.serial_number }}">
+            {{ device.name }} - {{ device.model_brand }} ({{ device.serial_number }})
+          </option>
+          {% endfor %}
+        </select>
+      </p>
+      <p><label>Equipment:</label><input type="text" id="device_name" readonly></p>
+      <p><label>Model/Brand:</label><input type="text" id="device_model" readonly></p>
+      <p><label>Serial Number:</label><input type="text" id="device_serial" readonly></p>
+
+      <p><label>PR Number:</label><input type="text" name="pr_number" required></p>
+      <p><label>Remarks:</label><textarea name="remarks"></textarea></p>
+
+      <div class="modal-buttons">
+        <button type="submit" class="btn btn-update">Confirm Borrow</button>
+        <button type="button" class="btn cancel-btn" onclick="closeModal('borrowModal')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Return Modal -->
+<div id="returnModal" class="modal">
+  <div class="card form-card modal-content">
+    <button class="modal-close-btn" onclick="closeModal('returnModal')">&times;</button>
+    <div class="card-header">RETURN DEVICE</div>
+    <form method="post" class="staff-form">
+      {% csrf_token %}
+      <input type="hidden" name="return_submit" value="1">
+
+      <p>
+        <label>Borrow Record:</label>
+        <select name="borrow_record" required>
+          {% for record in borrowed_records %}
+          <option value="{{ record.id }}">{{ record.staff.full_name }} - {{ record.device.name }} ({{ record.device.serial_number }})</option>
+          {% endfor %}
+        </select>
+      </p>
+      <p><label>Remarks:</label><textarea name="return_remarks"></textarea></p>
+      <p>
+        <label>Device Condition:</label>
+        <select name="device_status">
+          <option value="available">Available</option>
+          <option value="damaged">Damaged</option>
+          <option value="maintenance">Maintenance</option>
+          <option value="lost">Lost</option>
+        </select>
+      </p>
+
+      <div class="modal-buttons">
+        <button type="submit" class="btn btn-update">Confirm Return</button>
+        <button type="button" class="btn cancel-btn" onclick="closeModal('returnModal')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Main Inventory Container -->
+<div class="inventory-container">
+
+  <!-- Top Card: Borrow & Return Buttons -->
+  <div class="card action-card">
+    <div class="card-header">INVENTORY ACTIONS</div>
+    <div class="action-buttons">
+      <button type="button" class="btn btn-action" onclick="document.getElementById('borrowModal').style.display='flex'">Borrow Device</button>
+      <button type="button" class="btn btn-action" onclick="document.getElementById('returnModal').style.display='flex'">Return Device</button>
+    </div>
+  </div>
+
+  <!-- Search & Filter Card -->
+  <div class="card filter-card">
+    <div class="card-header">FILTER & SEARCH</div>
+    <form method="get" action="" class="search-filter-form">
+
+      <!-- Search bar on top -->
+      <div class="search-wrapper" style="width: 100%; margin-bottom: 1rem;">
+        <input
+          type="text"
+          id="search"
+          name="q"
+          placeholder="Search inventory..."
+          value="{{ query|default_if_none:'' }}"
+          class="search-input"
+        />
+      </div>
+
+      <!-- Date filter and buttons grouped -->
+      <div class="filter-bottom-row" style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; width: 100%; justify-content: flex-start;">
+        <label for="date_filter" class="filter-label" style="white-space: nowrap;">Filter by Date:</label>
+        <input type="date" id="date_filter" name="date" value="{{ filter_date|default_if_none:'' }}" class="date-input">
+
+        <button type="submit" class="btn btn-filter">Filter</button>
+        <a href="{% url 'inventory' %}" class="btn btn-clear">Clear</a>
+      </div>
+
+      <!-- Excel download below date filter row -->
+      <div class="excel-download-wrapper" style="margin-top: 1rem; width: 100%; text-align: left;">
+        <a href="{% url 'export_inventory_excel' %}?date={{ filter_date|urlencode }}" class="btn btn-download">Download Excel</a>
+      </div>
+    </form>
+  </div>
+
+  <!-- Borrowed Table -->
+  <div class="card table-card">
+    <div class="card-header">BORROWED DEVICES</div>
+    <table class="staff-table">
+      <thead>
+        <tr>
+          <th>Name of Staff</th>
+          <th>Department</th>
+          <th>Equipment</th>
+          <th>Model/Brand</th>
+          <th>Date Issued</th>
+          <th>Serial Number</th>
+          <th>PR Number</th>
+          <th>Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for record in borrowed_records %}
+        <tr>
+          <td>{{ record.staff.full_name }}</td>
+          <td>{{ record.staff.department.name }}</td>
+          <td>{{ record.device.name }}</td>
+          <td>{{ record.device.model_brand }}</td>
+          <td>{{ record.date_issued|date:"Y-m-d H:i" }}</td>
+          <td>{{ record.device.serial_number }}</td>
+          <td>{{ record.pr_number }}</td>
+          <td>{{ record.remarks }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8">No borrowed records.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Returned Table -->
+  <div class="card table-card">
+    <div class="card-header">RETURNED DEVICES</div>
+    <table class="staff-table">
+      <thead>
+        <tr>
+          <th>Name of Staff</th>
+          <th>Department</th>
+          <th>Equipment</th>
+          <th>Model/Brand</th>
+          <th>Date Issued</th>
+          <th>Date Returned</th>
+          <th>Serial Number</th>
+          <th>PR Number</th>
+          <th>Remarks</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for record in returned_records %}
+        <tr>
+          <td>{{ record.staff.full_name }}</td>
+          <td>{{ record.staff.department.name }}</td>
+          <td>{{ record.device.name }}</td>
+          <td>{{ record.device.model_brand }}</td>
+          <td>{{ record.date_issued|date:"Y-m-d H:i" }}</td>
+          <td>{{ record.date_returned|date:"Y-m-d H:i" }}</td>
+          <td>{{ record.device.serial_number }}</td>
+          <td>{{ record.pr_number }}</td>
+          <td>{{ record.remarks }}</td>
+          <td>
+            <a href="{% url 'return_edit' record.id %}" class="btn btn-small btn-update">Edit</a>
+            <a href="{% url 'return_delete' record.id %}" class="btn btn-small btn-delete">Delete</a>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="10">No returned records.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<script>
+function closeModal(id) {
+  document.getElementById(id).style.display = 'none';
+}
+
+function fillStaffInfo() {
+  const select = document.getElementById("staff_select");
+  const name = select.options[select.selectedIndex]?.getAttribute("data-name") || "";
+  const department = select.options[select.selectedIndex]?.getAttribute("data-department") || "";
+  document.getElementById("staff_name").value = name;
+  document.getElementById("staff_department").value = department;
+}
+
+function fillDeviceInfo() {
+  const select = document.getElementById("device_select");
+  const name = select.options[select.selectedIndex]?.getAttribute("data-name") || "";
+  const model = select.options[select.selectedIndex]?.getAttribute("data-model") || "";
+  const serial = select.options[select.selectedIndex]?.getAttribute("data-serial") || "";
+  document.getElementById("device_name").value = name;
+  document.getElementById("device_model").value = model;
+  document.getElementById("device_serial").value = serial;
+}
+</script>
+{% endblock %}

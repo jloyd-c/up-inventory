@@ -1,0 +1,94 @@
+/* Container */
+.signup-container {
+  max-width: 600px;
+  margin: 2rem auto;
+  font-family: 'Roboto Condensed', sans-serif;
+}
+
+/* Card Base */
+.card {
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  margin-bottom: 2rem;
+  padding: 0 30px 30px 30px;
+  border: 2px solid #ffa500;
+}
+
+/* Card header */
+.card-header {
+  background-color: #ffffff;
+  color: #7b0707;
+  font-weight: 700;
+  font-size: 1.4rem;
+  padding: 14px 20px;
+  border-radius: 12px 12px 0 0;
+  border-bottom: 2px solid rgba(255, 165, 0, 0.5);
+  user-select: none;
+  margin: 0 -30px 20px -30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+/* Form inside card */
+.signup-form p {
+  margin-bottom: 1.2rem;
+}
+
+.signup-form label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+.signup-form input[type="text"],
+.signup-form input[type="email"],
+.signup-form input[type="password"],
+.signup-form select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 15px;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+}
+
+.signup-form input[type="text"]:focus,
+.signup-form input[type="email"]:focus,
+.signup-form input[type="password"]:focus,
+.signup-form select:focus {
+  outline: none;
+  border-color: #7b0707;
+  box-shadow: 0 0 6px rgba(123, 7, 7, 0.5);
+}
+
+/* Submit button */
+.submit-btn {
+  background-color: #ff0000;
+  color: white;
+  padding: 12px 18px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+  transition: background-color 0.3s ease;
+  margin-top: 15px;
+  width: 100%;
+  font-size: 1.1rem;
+}
+
+.submit-btn:hover {
+  background-color: #5d0505;
+}
+
+/* Optional note text */
+.note {
+  font-size: 0.9rem;
+  color: #666;
+  margin-top: 8px;
+  text-align: center;
+}

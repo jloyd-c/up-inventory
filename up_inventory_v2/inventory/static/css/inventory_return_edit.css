@@ -1,0 +1,100 @@
+/* Container for the form */
+.inventory-form {
+  max-width: 600px;
+  margin: 2rem auto;
+  font-family: 'Roboto Condensed', sans-serif;
+  background-color: white;
+  border-radius: 12px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+  padding: 30px 40px 40px 40px;
+  border: 2px solid #ffa500;
+}
+
+/* Card header */
+.card-header {
+  background-color: #ffffff;
+  color: #7b0707;
+  font-weight: 700;
+  font-size: 1.3rem;
+  padding: 12px 20px;
+  border-radius: 12px 12px 0 0;
+  border-bottom: 2px solid rgba(255, 165, 0, 0.5);
+  user-select: none;
+  margin: 0 -40px 20px -40px;
+  text-align: center;
+}
+
+/* Labels */
+.inventory-form label {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #333;
+  display: block;
+  user-select: none;
+}
+
+/* Inputs, selects, textarea */
+.inventory-form input[type="text"],
+.inventory-form input[type="email"],
+.inventory-form select,
+.inventory-form textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+  box-sizing: border-box;
+  transition: border-color 0.3s ease;
+  resize: vertical;
+  margin-bottom: 1.25rem;
+}
+
+.inventory-form input[type="text"]:focus,
+.inventory-form input[type="email"]:focus,
+.inventory-form select:focus,
+.inventory-form textarea:focus {
+  outline: none;
+  border-color: #7b0707;
+  box-shadow: 0 0 5px rgba(123, 7, 7, 0.5);
+}
+
+/* Modal buttons container */
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  margin-top: 20px;
+}
+
+/* Buttons styling */
+.modal-buttons .btn {
+  flex: 1;
+  font-size: 1rem;
+  padding: 12px 0;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.3s ease;
+  color: white;
+  text-align: center;
+  border: none;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-update {
+  background-color: #28a745; /* Green */
+}
+
+.btn-update:hover {
+  background-color: #218838;
+}
+
+.cancel-btn {
+  background-color: #6c757d; /* Gray */
+}
+
+.cancel-btn:hover {
+  background-color: #5a6268;
+}
