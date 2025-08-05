@@ -43,26 +43,6 @@
   text-align: center;
 }
 
-/* Custom striped table colors */
-.staff-page .table-striped tbody tr:nth-child(odd) {
-  background-color: #fbb2b2; /* Light red for odd rows */
-}
-
-.staff-page .table-striped tbody tr:nth-child(even) {
-  background-color: white; /* White for even rows */
-}
-
-/* Ensure hover effect overrides stripes */
-.staff-page .table tbody tr:hover {
-  background-color: #ffe6e6 !important;
-  box-shadow: 0 4px 12px rgba(255, 0, 0, 0.15);
-}
-
-/* Fix for rounded corners with stripes */
-.staff-page .table tbody tr {
-  overflow: hidden;
-}
-
 .staff-page .table tbody tr {
   background-color: white;
   box-shadow: 0 1px 5px rgba(0,0,0,0.05);
@@ -70,8 +50,17 @@
   transition: background-color 0.25s ease, box-shadow 0.25s ease;
 }
 
+/* Override Bootstrap's default stripe colors */
+.staff-page .table-striped tbody tr:nth-child(odd) {
+  background-color: #fbb2b2; /* Light gray for odd rows */
+}
+
+.staff-page .table-striped tbody tr:nth-child(even) {
+  background-color: white; /* White for even rows */
+}
+
 .staff-page .table tbody tr:hover {
-  background-color: #ffe6e6;
+  background-color: #ffe6e6 !important;
   box-shadow: 0 4px 12px rgba(255, 0, 0, 0.15);
 }
 
@@ -173,46 +162,6 @@
 
 .staff-page .edit-btn:hover {
   background-color: #0056b3;
-}
-
-/* Enhanced Action Buttons */
-.staff-page .btn-action {
-  padding: 8px 12px;
-  font-size: 13px;
-  border-radius: 6px;
-  transition: all 0.3s ease;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: none;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.staff-page .btn-edit {
-  background-color: #4e73df;
-  color: white;
-}
-
-.staff-page .btn-edit:hover {
-  background-color: #3a5ec2;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(78, 115, 223, 0.3);
-}
-
-.staff-page .btn-delete {
-  background-color: #e74a3b;
-  color: white;
-}
-
-.staff-page .btn-delete:hover {
-  background-color: #d62c1a;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(231, 74, 59, 0.3);
-}
-
-/* Adjust action column width */
-.staff-page .action-style {
-  min-width: 180px;
 }
 
 /* Download button */
@@ -485,162 +434,3 @@ select.form-select:focus {
   outline: none;
 }
 
-
-
-/* Filter Modal Styles */
-.filter-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.5);
-  display: none;
-  align-items: center;
-  justify-content: center;
-  z-index: 1050;
-  padding: 20px;
-  box-sizing: border-box;
-}
-
-.filter-modal-content {
-  background-color: white;
-  border-radius: 12px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-  width: 100%;
-  max-width: 500px;
-  animation: fadeInScale 0.3s ease forwards;
-}
-
-.filter-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #eee;
-}
-
-.filter-modal-title {
-  font-weight: 700;
-  font-size: 1.25rem;
-  color: #7b0707;
-  margin: 0;
-}
-
-.filter-close-btn {
-  background: transparent;
-  border: none;
-  color: #7b0707;
-  font-size: 1.5rem;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.filter-close-btn:hover {
-  color: #ff0000;
-}
-
-.filter-modal-body {
-  padding: 20px;
-}
-
-.filter-section {
-  margin-bottom: 20px;
-}
-
-.filter-label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-  color: #555;
-}
-
-.filter-select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ced4da;
-  border-radius: 6px;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-}
-
-.filter-select:focus {
-  border-color: #7b0707;
-  box-shadow: 0 0 5px rgba(123, 7, 7, 0.5);
-  outline: none;
-}
-
-.date-range-picker {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.date-input {
-  flex: 1;
-  padding: 10px;
-  border: 1px solid #ced4da;
-  border-radius: 6px;
-}
-
-.date-range-separator {
-  color: #666;
-  font-weight: 600;
-}
-
-.filter-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  padding: 20px;
-  border-top: 1px solid #eee;
-}
-
-/* Make the filter button open the modal */
-.btn-filter {
-  cursor: pointer;
-}
-
-/* Filter Dropdown Styles */
-.filter-dropdown {
-  width: 300px;
-  padding: 20px;
-  border-radius: 12px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-  border: none;
-}
-
-.filter-dropdown .filter-section {
-  margin-bottom: 15px;
-}
-
-.filter-dropdown .filter-label {
-  display: block;
-  margin-bottom: 8px;
-  font-weight: 600;
-  color: #555;
-}
-
-.filter-dropdown .filter-select {
-  width: 100%;
-  padding: 8px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 6px;
-}
-
-.filter-dropdown .date-range-picker {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.filter-dropdown .date-input {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #ced4da;
-  border-radius: 6px;
-}
-
-.filter-dropdown .date-range-separator {
-  color: #666;
-  font-weight: 600;
-}

@@ -7,6 +7,8 @@ import openpyxl
 from django.http import HttpResponse
 from django.utils import timezone
 from django.contrib import messages
+from datetime import datetime
+from django.db import models
 
 # Create your views here.
 def home_view(request):
@@ -15,13 +17,6 @@ def home_view(request):
 def test_view(request):
     return render(request, 'test_modal.html')
 
-@login_required
-def dashboard_view(request):
-    return render(request, 'dashboard.html')
-
-@login_required
-def inventory_view(request):
-    return render(request, 'inventory.html')
 
 
 
@@ -32,16 +27,32 @@ def inventory_view(request):
 @login_required
 def staff_list(request):
     query = request.GET.get("q", "")
+    department = request.GET.get("department", "")
+    status = request.GET.get("status", "")
+    start_date = request.GET.get("start_date", "")
+    end_date = request.GET.get("end_date", "")
+
+    staff_records = StaffRecord.objects.all().order_by('-created_at')
 
     if query:
-        staff_records = StaffRecord.objects.filter(
+        staff_records = staff_records.filter(
             Q(full_name__icontains=query) |
             Q(email__icontains=query) |
             Q(status__icontains=query) |
             Q(department__name__icontains=query)
-        ).order_by('-created_at')
-    else:
-        staff_records = StaffRecord.objects.all().order_by('-created_at')
+        )
+
+    if department:
+        staff_records = staff_records.filter(department__id=department)
+
+    if status:
+        staff_records = staff_records.filter(status=status)
+
+    if start_date and end_date:
+        staff_records = staff_records.filter(
+            created_at__date__gte=start_date,
+            created_at__date__lte=end_date
+        )
 
     form = StaffRecordForm()
     departments = Department.objects.all()
@@ -93,6 +104,36 @@ def delete_staff(request, pk):
 
 @login_required
 def export_staff_excel(request):
+    query = request.GET.get("q", "")
+    department = request.GET.get("department", "")
+    status = request.GET.get("status", "")
+    start_date = request.GET.get("start_date", "")
+    end_date = request.GET.get("end_date", "")
+
+    staff_records = StaffRecord.objects.all().order_by('-created_at')
+
+    if query:
+        staff_records = staff_records.filter(
+            Q(full_name__icontains=query) |
+            Q(email__icontains=query) |
+            Q(status__icontains=query) |
+            Q(department__name__icontains=query)
+        )
+
+    if department:
+        staff_records = staff_records.filter(department__id=department)
+
+    if status:
+        staff_records = staff_records.filter(status=status)
+
+    if start_date and end_date:
+        staff_records = staff_records.filter(
+            created_at__date__gte=start_date,
+            created_at__date__lte=end_date
+        )
+
+
+
     query = request.GET.get("q", "")
     staff_records = StaffRecord.objects.filter(full_name__icontains=query) if query else StaffRecord.objects.all().order_by('-created_at')
 
@@ -315,13 +356,8 @@ def export_device_excel(request):
 
 
 
-from django.shortcuts import render, redirect
-from django.contrib.auth.decorators import login_required
-from django.utils import timezone
-from .models import BorrowRecord, Device
-from inventory.models import StaffRecord
-from .forms import BorrowForm, ReturnForm
-from datetime import datetime
+
+
 
 @login_required
 def inventory_view(request):
@@ -496,3 +532,44 @@ def export_inventory_excel(request):
     response['Content-Disposition'] = 'attachment; filename=inventory_export.xlsx'
     wb.save(response)
     return response
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@login_required
+def dashboard_view(request):
+    # Basic counts
+    total_devices = Device.objects.count()
+    total_staff = StaffRecord.objects.count()
+    borrowed_devices = BorrowRecord.objects.filter(date_returned__isnull=True).count()
+    available_devices = Device.objects.filter(status='available').count()
+    
+    # Recent activity
+    recent_borrowed = BorrowRecord.objects.filter(date_returned__isnull=True).order_by('-date_issued')[:5]
+    recent_returns = BorrowRecord.objects.filter(date_returned__isnull=False).order_by('-date_returned')[:5]
+    
+    # Device status breakdown
+    device_status_counts = Device.objects.values('status').annotate(count=models.Count('id')).order_by('-count')
+    
+    context = {
+        'total_devices': total_devices,
+        'total_staff': total_staff,
+        'borrowed_devices': borrowed_devices,
+        'available_devices': available_devices,
+        'recent_borrowed': recent_borrowed,
+        'recent_returns': recent_returns,
+        'device_status_counts': device_status_counts,
+    }
+    return render(request, 'dashboard.html', context)

@@ -2,126 +2,214 @@
 {% load static %}
 
 {% block content %}
-<link rel="stylesheet" href="{% static 'css/department.css' %}">
+<!-- Font Awesome and Bootstrap CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/staff.css' %}">
 
-<!-- Edit Department Modal -->
-<div id="editModal" class="modal">
-  <div class="card form-card modal-content">
-    <button class="modal-close-btn" onclick="closeModal()" aria-label="Close modal">&times;</button>
-    <div class="card-header">EDIT DEPARTMENT</div>
-    <form id="editDepartmentForm" method="post" class="staff-form">
-      {% csrf_token %}
-      <input type="hidden" name="id" id="edit-id" />
-      <p>
-        <label for="edit-name">Department Name:</label>
-        <input type="text" name="name" id="edit-name" required>
-      </p>
-      <div class="modal-buttons">
-        <button type="submit" class="btn btn-update">Update Department</button>
-        <button type="button" class="btn cancel-btn" onclick="closeModal()">Cancel</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div class="staff-container">
-
-  {% if user.is_superuser %}
-  <!-- Add Department Form Card -->
-  <div class="card form-card">
-    <div class="card-header">ADD NEW DEPARTMENT</div>
-    <form action="{% url 'add_department' %}" method="post" class="staff-form">
-      {% csrf_token %}
-      {{ form.as_p }}
-      <button type="submit" class="btn submit-btn">Add Department</button>
-    </form>
-  </div>
-  {% endif %}
-
-  <!-- Department Table Card -->
-  <div class="card table-card">
-    <div class="card-header">DEPARTMENT LIST</div>
-
-    <div class="search-download-wrapper">
-      <form method="get" action="" class="search-form">
-        <input
-          type="text"
-          id="search"
-          name="q"
-          placeholder="Search departments..."
-          value="{{ query }}"
-          class="search-input"
-        />
-      </form>
-
-      <a href="{% url 'export_department_excel' %}" class="btn btn-download">
-        Download Excel
+<div class="staff-page container mt-4">
+  <!-- Top Bar -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="fas fa-building me-2"></i>Department Management</h2>
+    {% if user.is_superuser %}
+    <div class="d-flex gap-2">
+      <button class="btn btn-primary" onclick="openAddModal()">
+        <i class="fas fa-plus-circle me-1"></i>Add Department
+      </button>
+      <a href="{% url 'export_department_excel' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn-download">
+        <i class="fas fa-file-excel me-1"></i>Download Excel
       </a>
     </div>
+    {% endif %}
+  </div>
 
-    <table class="staff-table">
-      <thead>
-        <tr>
-          <th>Department Name</th>
-          <th>Date Created</th>
-          {% if user.is_superuser %}
-          <th>Actions</th>
-          {% endif %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for dept in departments %}
-        <tr>
-          <td>{{ dept.name }}</td>
-          <td>{{ dept.created_at|date:"Y-m-d H:i" }}</td>
-          {% if user.is_superuser %}
-          <td class="action-style">
-            <a href="javascript:void(0);" 
-               class="btn edit-btn"
-               data-id="{{ dept.id }}"
-               data-name="{{ dept.name|escapejs }}"
-               onclick="handleEditClick(this)">
-               Edit
-            </a>
+  <!-- Filter & Search Bar -->
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <form method="GET" action="{% url 'department' %}" id="searchForm">
+        <div class="input-group">
+          <input type="text" class="form-control" placeholder="Search departments..." name="q" value="{{ request.GET.q }}" id="searchInput">
+          <button class="btn btn-primary" type="submit">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+    <div class="col-md-6 text-end">
+      <div class="dropdown">
+        <button class="btn btn-filter dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="fas fa-filter me-1"></i>Filter
+        </button>
+        <div class="dropdown-menu dropdown-menu-end filter-dropdown p-3" aria-labelledby="filterDropdown">
+          <form method="GET" action="{% url 'department' %}" id="filterForm">
+            <input type="hidden" name="q" value="{{ request.GET.q }}">
+            
+            <div class="filter-section mb-3">
+              <label class="filter-label">Date Range</label>
+              <div class="date-range-picker">
+                <input type="date" class="form-control date-input" name="start_date" id="startDate" value="{{ request.GET.start_date }}">
+                <span class="date-range-separator">to</span>
+                <input type="date" class="form-control date-input" name="end_date" id="endDate" value="{{ request.GET.end_date }}">
+              </div>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-3">
+              <button type="button" class="btn btn-secondary" onclick="resetFilters()">Reset</button>
+              <button type="submit" class="btn btn-primary">Apply</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
 
-            <form action="{% url 'delete_department' dept.pk %}" method="post" style="display:inline;">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-danger delete-btn" onclick="return confirm('Delete this department?')">Delete</button>
-            </form>
-          </td>
-          {% endif %}
-        </tr>
-        {% empty %}
-        <tr><td colspan="3">No departments found.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <!-- Department Table -->
+  <div class="card shadow rounded-4">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover table-striped align-middle text-center" id="departmentTable">
+          <thead class="table-light">
+            <tr>
+              <th>Department Name</th>
+              <th>Date Created</th>
+              {% if user.is_superuser %}<th>Actions</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for dept in departments %}
+            <tr>
+              <td>{{ dept.name }}</td>
+              <td>{{ dept.created_at|date:"Y-m-d H:i" }}</td>
+              {% if user.is_superuser %}
+              <td class="action-style text-center">
+                  <button class="btn btn-action btn-edit"
+                          onclick="handleEditClick(this)"
+                          data-id="{{ dept.id }}"
+                          data-name="{{ dept.name|escapejs }}">
+                    <i class="fas fa-edit"></i> Edit
+                  </button>
+                  <form action="{% url 'delete_department' dept.pk %}" method="post" style="display:inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-action btn-delete" onclick="return confirm('Delete this department?')">
+                      <i class="fas fa-trash-alt"></i> Delete
+                    </button>
+                  </form>
+                </td>
+              {% endif %}
+            </tr>
+            {% empty %}
+            <tr><td colspan="3">No departments found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
+<!-- Add Modal -->
+<div class="modal" id="addModal" tabindex="-1" style="display:none;">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-3">
+      <div class="modal-header">
+        <h5 class="modal-title">Add New Department</h5>
+        <button type="button" class="btn-close" onclick="closeAddModal()"></button>
+      </div>
+      <form method="post" action="{% url 'add_department' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="add-name">Department Name</label>
+            <input type="text" name="name" id="add-name" class="form-control" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-success" type="submit">Add Department</button>
+          <button class="btn btn-secondary" type="button" onclick="closeAddModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal" id="editModal" tabindex="-1" style="display:none;">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-3">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Department</h5>
+        <button type="button" class="btn-close" onclick="closeEditModal()"></button>
+      </div>
+      <form method="post" action="" id="editForm">
+        {% csrf_token %}
+        <input type="hidden" name="id" id="edit-id" />
+        <div class="modal-body">
+          <div class="mb-3">
+            <label>Department Name</label>
+            <input type="text" name="name" id="edit-name" class="form-control" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" type="submit">Update Department</button>
+          <button class="btn btn-secondary" type="button" onclick="closeEditModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
 <script>
-  function handleEditClick(element) {
-    document.getElementById('edit-id').value = element.dataset.id;
-    document.getElementById('edit-name').value = element.dataset.name;
-    document.getElementById('editModal').style.display = 'flex';
+  function openAddModal() {
+    document.getElementById("addModal").style.display = "block";
   }
 
-  function closeModal() {
-    document.getElementById('editModal').style.display = 'none';
+  function closeAddModal() {
+    document.getElementById("addModal").style.display = "none";
   }
 
-  document.getElementById('search').addEventListener('input', function() {
+  function handleEditClick(btn) {
+    const id = btn.dataset.id;
+    document.getElementById("edit-id").value = id;
+    document.getElementById("edit-name").value = btn.dataset.name;
+
+    document.getElementById("editForm").action = `/department/update/${id}/`;
+
+    document.getElementById("editModal").style.display = "block";
+  }
+
+  function closeEditModal() {
+    document.getElementById("editModal").style.display = "none";
+  }
+
+  function resetFilters() {
+    // Reset form inputs
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value = '';
+    
+    // Submit the form to remove all filters
+    document.getElementById('filterForm').submit();
+  }
+
+  // Client-side search
+  document.getElementById('searchInput').addEventListener('input', function() {
     const filter = this.value.toLowerCase();
-    const rows = document.querySelectorAll('.staff-table tbody tr');
-
+    const rows = document.querySelectorAll('#departmentTable tbody tr');
     rows.forEach(row => {
-      const deptName = row.cells[0].textContent.toLowerCase();
-      if (deptName.includes(filter)) {
-        row.style.display = '';
-      } else {
-        row.style.display = 'none';
-      }
+      const rowText = row.textContent.toLowerCase();
+      row.style.display = rowText.includes(filter) ? '' : 'none';
     });
   });
+
+  // Preserve search when filtering
+  document.getElementById('filterForm').addEventListener('submit', function(e) {
+    const searchValue = document.getElementById('searchInput').value;
+    if (searchValue) {
+      this.querySelector('input[name="q"]').value = searchValue;
+    }
+  });
 </script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 {% endblock %}

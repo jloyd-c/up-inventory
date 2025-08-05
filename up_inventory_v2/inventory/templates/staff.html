@@ -2,186 +2,322 @@
 {% load static %}
 
 {% block content %}
+<!-- Font Awesome and Bootstrap CSS -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/staff.css' %}">
 
-<!-- Edit Staff Modal -->
-<div id="editModal" class="modal">
-  <div class="card form-card modal-content">
-    <button class="modal-close-btn" onclick="closeModal()" aria-label="Close modal">&times;</button>
-    <div class="card-header">EDIT STAFF</div>
-    <form id="editStaffForm" method="post" class="staff-form">
-      {% csrf_token %}
-      <input type="hidden" name="id" id="edit-id" />
-      <p>
-        <label for="edit-full-name">Full Name:</label>
-        <input type="text" name="full_name" id="edit-full-name" required>
-      </p>
-      <p>
-        <label for="edit-email">Email:</label>
-        <input type="email" name="email" id="edit-email" required>
-      </p>
-      <p>
-        <label for="edit-status">Status:</label>
-        <select name="status" id="edit-status" required>
-          {% for value, label in form.fields.status.choices %}
-            <option value="{{ value }}">{{ label }}</option>
-          {% endfor %}
-        </select>
-      </p>
-      <p>
-        <label for="edit-department">Department:</label>
-        <select name="department" id="edit-department">
-          {% for dept in departments %}
-          <option value="{{ dept.id }}">{{ dept.name }}</option>
-          {% endfor %}
-        </select>
-      </p>
-      <div class="modal-buttons">
-        <button type="submit" class="btn btn-update">Update Staff</button>
-        <button type="button" class="btn cancel-btn" onclick="closeModal()">Cancel</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div class="staff-container">
-
-  {% if user.is_superuser %}
-  <!-- Add Staff Form Card -->
-  <div class="card form-card">
-    <div class="card-header">ADD NEW STAFF</div>
-    <form action="{% url 'add_staff' %}" method="post" class="staff-form">
-      {% csrf_token %}
-      <p>
-        <label for="{{ form.full_name.id_for_label }}">Full Name:</label>
-        {{ form.full_name }}
-      </p>
-      <p>
-        <label for="{{ form.email.id_for_label }}">Email:</label>
-        {{ form.email }}
-      </p>
-      <p>
-        <label for="{{ form.status.id_for_label }}">Status:</label>
-        {{ form.status }}
-      </p>
-      <p>
-        <label for="{{ form.department.id_for_label }}">Department: (Chouse department)</label>
-        <select name="department" id="{{ form.department.id_for_label }}">
-          {% if departments %}
-            {% for dept in departments %}
-              <option value="{{ dept.id }}">{{ dept.name }}</option>
-            {% endfor %}
-          {% else %}
-            <option value="">No departments available</option>
-          {% endif %}
-        </select>
-      </p>
-      <button type="submit" class="btn submit-btn">Add Staff</button>
-    </form>
-  </div>
-  {% endif %}
-
-  <!-- Staff Table Card -->
-  <div class="card table-card">
-    <div class="card-header">STAFF RECORDS</div>
-    
-    <div class="search-download-wrapper">
-      <form method="get" action="" class="search-form">
-        <input
-          type="text"
-          id="search"
-          name="q"
-          placeholder="Search staff..."
-          value="{{ query }}"
-          class="search-input"
-        />
-      </form>
-      <a href="{% url 'export_staff_excel' %}" class="btn btn-download">
-        Download Excel
+<div class="staff-page container mt-4">
+  <!-- Top Bar -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0"><i class="fas fa-users me-2"></i>Staff Management</h2>
+    <div class="d-flex gap-2">
+      {% if user.is_superuser %}
+      <button class="btn btn-primary" onclick="openAddModal()">
+        <i class="fas fa-user-plus me-1"></i>Add Staff
+      </button>
+      <a href="{% url 'export_staff_excel' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn-download">
+        <i class="fas fa-file-excel me-1"></i>Download Excel
       </a>
+      {% endif %}
     </div>
+  </div>
 
-    <table class="staff-table">
-      <thead>
-        <tr>
-          <th>Full Name</th>
-          <th>Email</th>
-          <th>Status</th>
-          <th>Department</th>
-          {% if user.is_superuser %}
-          <th>Actions</th>
-          {% endif %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for staff in staff_records %}
-        <tr>
-          <td>{{ staff.full_name }}</td>
-          <td>{{ staff.email }}</td>
-          <td>{{ staff.status }}</td>
-          <td>{{ staff.department.name }}</td>
-          {% if user.is_superuser %}
-          <td class="action-style">
-            <a href="javascript:void(0);" 
-              class="btn edit-btn"
-              data-id="{{ staff.id }}"
-              data-full-name="{{ staff.full_name|escapejs }}"
-              data-email="{{ staff.email|escapejs }}"
-              data-status="{{ staff.status|escapejs }}"
-              data-department-id="{{ staff.department.id }}"
-              onclick="handleEditClick(this)">
-              Edit
-            </a>
+  <!-- Filter & Search Bar -->
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <form method="GET" action="{% url 'staff' %}" id="searchForm">
+        <div class="input-group">
+          <input type="text" class="form-control" placeholder="Search staff..." name="q" value="{{ request.GET.q }}" id="searchInput">
+          <button class="btn btn-primary" type="submit">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+    <div class="col-md-6 text-end">
+      <div class="dropdown">
+        <button class="btn btn-filter dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="fas fa-filter me-1"></i>Filter
+        </button>
+        <div class="dropdown-menu dropdown-menu-end filter-dropdown p-3" aria-labelledby="filterDropdown">
+          <form method="GET" action="{% url 'staff' %}" id="filterForm">
+            <input type="hidden" name="q" value="{{ request.GET.q }}">
+            
+            <div class="filter-section mb-3">
+              <label class="filter-label">Department</label>
+              <select class="form-select filter-select" name="department" id="departmentFilter">
+                <option value="">All Departments</option>
+                {% for dept in departments %}
+                <option value="{{ dept.id }}" {% if request.GET.department == dept.id|stringformat:"s" %}selected{% endif %}>
+                  {{ dept.name }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div class="filter-section mb-3">
+              <label class="filter-label">Status</label>
+              <select class="form-select filter-select" name="status" id="statusFilter">
+                <option value="">All Statuses</option>
+                {% for value, label in form.fields.status.choices %}
+                <option value="{{ value }}" {% if request.GET.status == value %}selected{% endif %}>
+                  {{ label }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <div class="filter-section mb-3">
+              <label class="filter-label">Date Range</label>
+              <div class="date-range-picker">
+                <input type="date" class="form-control date-input" name="start_date" id="startDate" value="{{ request.GET.start_date }}">
+                <span class="date-range-separator">to</span>
+                <input type="date" class="form-control date-input" name="end_date" id="endDate" value="{{ request.GET.end_date }}">
+              </div>
+            </div>
+            
+            <div class="d-flex justify-content-between mt-3">
+              <button type="button" class="btn btn-secondary" onclick="resetFilters()">Reset</button>
+              <button type="submit" class="btn btn-primary">Apply</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
 
-            <form action="{% url 'delete_staff' staff.pk %}" method="post" style="display:inline;">
-              {% csrf_token %}
-              <button type="submit" class="btn btn-danger delete-btn" onclick="return confirm('Delete this staff?')">Delete</button>
-            </form>
-          </td>
-          {% endif %}
-        </tr>
-        {% empty %}
-        <tr><td colspan="5">No staff found.</td></tr>
-        {% endfor %}
-      </tbody>
-    </table>
+  <!-- Staff Table -->
+  <div class="card shadow rounded-4">
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-hover table-striped align-middle text-center" id="staffTable">
+          <thead class="table-light">
+            <tr>
+              <th>Full Name</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th>Department</th>
+              {% if user.is_superuser %}<th>Actions</th>{% endif %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for staff in staff_records %}
+            <tr>
+              <td>{{ staff.full_name }}</td>
+              <td>{{ staff.email }}</td>
+              <td>{{ staff.status }}</td>
+              <td>{{ staff.department.name }}</td>
+              {% if user.is_superuser %}
+              <td class="action-style text-center">
+                  <button class="btn btn-action btn-edit"
+                          onclick="handleEditClick(this)"
+                          data-id="{{ staff.id }}"
+                          data-full-name="{{ staff.full_name|escapejs }}"
+                          data-email="{{ staff.email|escapejs }}"
+                          data-status="{{ staff.status|escapejs }}"
+                          data-department-id="{{ staff.department.id }}">
+                    <i class="fas fa-edit"></i> Edit
+                  </button>
+                  <button class="btn btn-action btn-delete" 
+                          onclick="openDeleteModal('{{ staff.pk }}')" 
+                          type="button">
+                    <i class="fas fa-trash-alt"></i> Delete
+                  </button>
+                </td>
+              {% endif %}
+            </tr>
+            {% empty %}
+            <tr><td colspan="5">No staff found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
+<!-- Add Modal -->
+<div class="modal" id="addModal" tabindex="-1" style="display:none;">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-3">
+      <div class="modal-header">
+        <h5 class="modal-title">Add New Staff</h5>
+        <button type="button" class="btn-close" onclick="closeAddModal()"></button>
+      </div>
+      <form method="post" action="{% url 'add_staff' %}">
+        {% csrf_token %}
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="add-full-name">Full Name</label>
+            <input type="text" name="full_name" id="add-full-name" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label for="add-email">Email</label>
+            <input type="email" name="email" id="add-email" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label for="add-status">Status</label>
+            <select name="status" id="add-status" class="form-select" required>
+              {% for value, label in form.fields.status.choices %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="add-department">Department</label>
+            <select name="department" id="add-department" class="form-select" required>
+              {% for dept in departments %}
+              <option value="{{ dept.id }}">{{ dept.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-success" type="submit">Add Staff</button>
+          <button class="btn btn-secondary" type="button" onclick="closeAddModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div class="modal" id="editModal" tabindex="-1" style="display:none;">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-3">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit Staff</h5>
+        <button type="button" class="btn-close" onclick="closeEditModal()"></button>
+      </div>
+      <form method="post" action="" id="editForm">
+        {% csrf_token %}
+        <input type="hidden" name="id" id="edit-id" />
+        <div class="modal-body">
+          <div class="mb-3">
+            <label>Full Name</label>
+            <input type="text" name="full_name" id="edit-full-name" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label>Email</label>
+            <input type="email" name="email" id="edit-email" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label>Status</label>
+            <select name="status" id="edit-status" class="form-select" required>
+              {% for value, label in form.fields.status.choices %}
+              <option value="{{ value }}">{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label>Department</label>
+            <select name="department" id="edit-department" class="form-select">
+              {% for dept in departments %}
+              <option value="{{ dept.id }}">{{ dept.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" type="submit">Update Staff</button>
+          <button class="btn btn-secondary" type="button" onclick="closeEditModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal" id="deleteModal" tabindex="-1" style="display:none;">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content p-3">
+      <div class="modal-header">
+        <h5 class="modal-title">Confirm Delete</h5>
+        <button type="button" class="btn-close" onclick="closeDeleteModal()"></button>
+      </div>
+      <form method="post" id="deleteForm">
+        {% csrf_token %}
+        <div class="modal-body">
+          <p>Are you sure you want to delete this staff?</p>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-danger">Delete</button>
+          <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Scripts -->
 <script>
-  function handleEditClick(element) {
-    document.getElementById('edit-id').value = element.dataset.id;
-    document.getElementById('edit-full-name').value = element.dataset.fullName;
-    document.getElementById('edit-email').value = element.dataset.email;
-    document.getElementById('edit-status').value = element.dataset.status;
-    document.getElementById('edit-department').value = element.dataset.departmentId;
-    document.getElementById('editModal').style.display = 'flex';
+  function openAddModal() {
+    document.getElementById("addModal").style.display = "block";
   }
 
-  function closeModal() {
-    document.getElementById('editModal').style.display = 'none';
+  function closeAddModal() {
+    document.getElementById("addModal").style.display = "none";
   }
 
-  document.getElementById('search').addEventListener('input', function() {
+  function closeEditModal() {
+    document.getElementById("editModal").style.display = "none";
+  }
+
+  function handleEditClick(btn) {
+    const id = btn.dataset.id;
+    document.getElementById("edit-id").value = id;
+    document.getElementById("edit-full-name").value = btn.dataset.fullName;
+    document.getElementById("edit-email").value = btn.dataset.email;
+    document.getElementById("edit-status").value = btn.dataset.status;
+    document.getElementById("edit-department").value = btn.dataset.departmentId;
+
+    document.getElementById("editForm").action = `/staff/update/${id}/`;
+
+    document.getElementById("editModal").style.display = "block";
+  }
+
+  function openDeleteModal(staffId) {
+    const deleteForm = document.getElementById('deleteForm');
+    const baseUrl = "{% url 'delete_staff' 0 %}".slice(0, -2);
+    deleteForm.action = `${baseUrl}${staffId}/`;
+    document.getElementById('deleteModal').style.display = 'flex';
+  }
+
+  function closeDeleteModal() {
+    document.getElementById('deleteModal').style.display = 'none';
+  }
+
+  function resetFilters() {
+    // Reset form inputs
+    document.getElementById('departmentFilter').value = '';
+    document.getElementById('statusFilter').value = '';
+    document.getElementById('startDate').value = '';
+    document.getElementById('endDate').value = '';
+    
+    // Submit the form to remove all filters
+    document.getElementById('filterForm').submit();
+  }
+
+  // Client-side search
+  document.getElementById('searchInput').addEventListener('input', function() {
     const filter = this.value.toLowerCase();
-    const rows = document.querySelectorAll('.staff-table tbody tr');
+    const rows = document.querySelectorAll('#staffTable tbody tr');
     rows.forEach(row => {
-      const fullName = row.cells[0].textContent.toLowerCase();
-      const email = row.cells[1].textContent.toLowerCase();
-      const status = row.cells[2].textContent.toLowerCase();
-      const department = row.cells[3].textContent.toLowerCase();
-
-      if (
-        fullName.includes(filter) ||
-        email.includes(filter) ||
-        status.includes(filter) ||
-        department.includes(filter)
-      ) {
-        row.style.display = '';
-      } else {
-        row.style.display = 'none';
-      }
+      const rowText = row.textContent.toLowerCase();
+      row.style.display = rowText.includes(filter) ? '' : 'none';
     });
   });
+
+  // Preserve search when filtering
+  document.getElementById('filterForm').addEventListener('submit', function(e) {
+    const searchValue = document.getElementById('searchInput').value;
+    if (searchValue) {
+      this.querySelector('input[name="q"]').value = searchValue;
+    }
+  });
 </script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 {% endblock %}
