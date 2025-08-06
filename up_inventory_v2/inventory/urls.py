@@ -38,4 +38,9 @@ urlpatterns = [
     path('inventory/export_excel/', views.export_inventory_excel, name='export_inventory_excel'),
     path('return/edit/<int:pk>/', views.return_edit_view, name='return_edit'),
     path('return/delete/<int:pk>/', views.return_delete_view, name='return_delete'),
+
+
+
+
+    path('history/', views.history_log, name='history_log'),
 ]

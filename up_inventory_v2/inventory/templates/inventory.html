@@ -7,7 +7,6 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/staff.css' %}">
 
-<!-- Main Inventory Container -->
 <div class="staff-page container mt-4">
   <!-- Top Bar -->
   <div class="d-flex justify-content-between align-items-center mb-4">
@@ -25,101 +24,158 @@
     </div>
   </div>
 
-  <!-- Borrowed Devices Card -->
-  <div class="card shadow rounded-4 mb-4">
-    <div class="card-header bg-danger text-white">
-      <h5 class="mb-0"><i class="fas fa-laptop me-2"></i>Borrowed Devices</h5>
+  <!-- Search & Filter Bar -->
+<div class="row mb-3">
+  <div class="col-md-6">
+    <form method="GET" action="{% url 'inventory' %}" id="searchForm">
+      <div class="input-group">
+        <input type="text" class="form-control" placeholder="Search inventory..." name="q" value="{{ request.GET.q }}" id="searchInput">
+        <button class="btn btn-primary" type="submit">
+          <i class="fas fa-search"></i>
+        </button>
+      </div>
+    </form>
+  </div>
+  <div class="col-md-6 text-end">
+    <div class="dropdown">
+      <button class="btn btn-filter dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-filter me-1"></i>Filter
+      </button>
+      <div class="dropdown-menu dropdown-menu-end filter-dropdown p-3" aria-labelledby="filterDropdown">
+        <form method="GET" action="{% url 'inventory' %}" id="filterForm">
+          <input type="hidden" name="q" value="{{ request.GET.q }}">
+          
+          <div class="filter-section mb-3">
+            <label class="filter-label">Staff Name</label>
+            <select class="form-select filter-select" name="staff_name" id="staffNameFilter">
+              <option value="">All Staff</option>
+              {% for staff in all_staff %}
+              <option value="{{ staff.id }}" {% if request.GET.staff_name == staff.id|stringformat:"s" %}selected{% endif %}>
+                {{ staff.full_name }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          
+          <div class="filter-section mb-3">
+            <label class="filter-label">Date</label>
+            <input type="date" class="form-control date-input" name="date" id="filterDate" value="{{ filter_date }}">
+          </div>
+          
+          <div class="filter-section mb-3">
+            <label class="filter-label">Status</label>
+            <select class="form-select filter-select" name="status" id="statusFilter">
+              <option value="">All Statuses</option>
+              <option value="borrowed" {% if request.GET.status == 'borrowed' %}selected{% endif %}>Borrowed Only</option>
+              <option value="returned" {% if request.GET.status == 'returned' %}selected{% endif %}>Returned Only</option>
+            </select>
+          </div>
+          
+          <div class="d-flex justify-content-between mt-3">
+            <button type="button" class="btn btn-secondary" onclick="resetFilters()">Reset</button>
+            <button type="submit" class="btn btn-primary">Apply</button>
+          </div>
+        </form>
+      </div>
     </div>
-    <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-hover table-striped align-middle text-center" id="borrowedTable">
-          <thead class="table-light">
-            <tr>
-              <th>Staff Name</th>
-              <th>Department</th>
-              <th>Equipment</th>
-              <th>Model/Brand</th>
-              <th>Date Issued</th>
-              <th>Serial Number</th>
-              <th>PR Number</th>
-              <th>Remarks</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for record in borrowed_records %}
-            <tr>
-              <td>{{ record.staff.full_name }}</td>
-              <td>{{ record.staff.department.name }}</td>
-              <td>{{ record.device.name }}</td>
-              <td>{{ record.device.model_brand }}</td>
-              <td>{{ record.date_issued|date:"Y-m-d H:i" }}</td>
-              <td>{{ record.device.serial_number }}</td>
-              <td>{{ record.pr_number }}</td>
-              <td>{{ record.remarks }}</td>
-              <td class="action-style text-center">
-                <button class="btn btn-action btn-edit" onclick="openEditBorrowModal('{{ record.id }}')">
-                  <i class="fas fa-edit"></i> Edit
-                </button>
-              </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="9">No borrowed devices.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+  </div>
+</div>
+
+  <!-- Borrowed Devices Section -->
+  <div class="mb-4">
+    <h4 class="mb-3"><i class="fas fa-laptop me-2"></i>Borrowed Devices</h4>
+    <div class="card shadow rounded-4">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover table-striped align-middle text-center" id="borrowedTable">
+            <thead class="table-light">
+              <tr>
+                <th>Staff Name</th>
+                <th>Department</th>
+                <th>Equipment</th>
+                <th>Model/Brand</th>
+                <th>Date Issued</th>
+                <th>Serial Number</th>
+                <th>PR Number</th>
+                <th>Remarks</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in borrowed_records %}
+              <tr>
+                <td>{{ record.staff.full_name }}</td>
+                <td>{{ record.staff.department.name }}</td>
+                <td>{{ record.device.name }}</td>
+                <td>{{ record.device.model_brand }}</td>
+                <td>{{ record.date_issued|date:"Y-m-d H:i" }}</td>
+                <td>{{ record.device.serial_number }}</td>
+                <td>{{ record.pr_number }}</td>
+                <td>{{ record.remarks }}</td>
+                <td class="action-style text-center">
+                  <button class="btn btn-action btn-edit" onclick="openEditBorrowModal('{{ record.id }}')">
+                    <i class="fas fa-edit"></i> Edit
+                  </button>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="9">No borrowed devices.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Returned Devices Card -->
-  <div class="card shadow rounded-4">
-    <div class="card-header bg-success text-white">
-      <h5 class="mb-0"><i class="fas fa-check-circle me-2"></i>Returned Devices</h5>
-    </div>
-    <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-hover table-striped align-middle text-center" id="returnedTable">
-          <thead class="table-light">
-            <tr>
-              <th>Staff Name</th>
-              <th>Department</th>
-              <th>Equipment</th>
-              <th>Model/Brand</th>
-              <th>Date Issued</th>
-              <th>Date Returned</th>
-              <th>Serial Number</th>
-              <th>PR Number</th>
-              <th>Remarks</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for record in returned_records %}
-            <tr>
-              <td>{{ record.staff.full_name }}</td>
-              <td>{{ record.staff.department.name }}</td>
-              <td>{{ record.device.name }}</td>
-              <td>{{ record.device.model_brand }}</td>
-              <td>{{ record.date_issued|date:"Y-m-d H:i" }}</td>
-              <td>{{ record.date_returned|date:"Y-m-d H:i" }}</td>
-              <td>{{ record.device.serial_number }}</td>
-              <td>{{ record.pr_number }}</td>
-              <td>{{ record.remarks }}</td>
-              <td class="action-style text-center">
-                <button class="btn btn-action btn-edit" onclick="openEditReturnModal('{{ record.id }}')">
-                  <i class="fas fa-edit"></i> Edit
-                </button>
-                <button class="btn btn-action btn-delete" onclick="openDeleteReturnModal('{{ record.id }}')">
-                  <i class="fas fa-trash-alt"></i> Delete
-                </button>
-              </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="10">No returned devices.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
+  <!-- Returned Devices Section -->
+  <div>
+    <h4 class="mb-3"><i class="fas fa-check-circle me-2"></i>Returned Devices</h4>
+    <div class="card shadow rounded-4">
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover table-striped align-middle text-center" id="returnedTable">
+            <thead class="table-light">
+              <tr>
+                <th>Staff Name</th>
+                <th>Department</th>
+                <th>Equipment</th>
+                <th>Model/Brand</th>
+                <th>Date Issued</th>
+                <th>Date Returned</th>
+                <th>Serial Number</th>
+                <th>PR Number</th>
+                <th>Remarks</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for record in returned_records %}
+              <tr>
+                <td>{{ record.staff.full_name }}</td>
+                <td>{{ record.staff.department.name }}</td>
+                <td>{{ record.device.name }}</td>
+                <td>{{ record.device.model_brand }}</td>
+                <td>{{ record.date_issued|date:"Y-m-d H:i" }}</td>
+                <td>{{ record.date_returned|date:"Y-m-d H:i" }}</td>
+                <td>{{ record.device.serial_number }}</td>
+                <td>{{ record.pr_number }}</td>
+                <td>{{ record.remarks }}</td>
+                <td class="action-style text-center">
+                  <button class="btn btn-action btn-edit" onclick="openEditReturnModal('{{ record.id }}')">
+                    <i class="fas fa-edit"></i> Edit
+                  </button>
+                  <button class="btn btn-action btn-delete" onclick="openDeleteReturnModal('{{ record.id }}')">
+                    <i class="fas fa-trash-alt"></i> Delete
+                  </button>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="10">No returned devices.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </div>
@@ -404,8 +460,6 @@ function fillDeviceInfo() {
 }
 
 function openEditBorrowModal(recordId) {
-  // In a real implementation, you would fetch the record data here
-  // For now, we'll just show the modal
   document.getElementById("edit-borrow-id").value = recordId;
   document.getElementById("editBorrowModal").style.display = "flex";
 }
@@ -415,8 +469,6 @@ function closeEditBorrowModal() {
 }
 
 function openEditReturnModal(recordId) {
-  // In a real implementation, you would fetch the record data here
-  // For now, we'll just show the modal
   document.getElementById("edit-return-id").value = recordId;
   document.getElementById("editReturnModal").style.display = "flex";
 }
@@ -436,21 +488,27 @@ function closeDeleteReturnModal() {
   document.getElementById('deleteReturnModal').style.display = 'none';
 }
 
-// Client-side search for borrowed table
+function resetFilters() {
+  document.getElementById('staffNameFilter').value = '';
+  document.getElementById('filterDate').value = '';
+  document.getElementById('statusFilter').value = '';
+  document.getElementById('filterForm').submit();
+}
+
+// Client-side search for both tables
 document.getElementById('searchInput')?.addEventListener('input', function() {
   const filter = this.value.toLowerCase();
-  const rows = document.querySelectorAll('#borrowedTable tbody tr');
-  rows.forEach(row => {
+  
+  // Search borrowed table
+  const borrowedRows = document.querySelectorAll('#borrowedTable tbody tr');
+  borrowedRows.forEach(row => {
     const rowText = row.textContent.toLowerCase();
     row.style.display = rowText.includes(filter) ? '' : 'none';
   });
-});
-
-// Client-side search for returned table
-document.getElementById('searchInput')?.addEventListener('input', function() {
-  const filter = this.value.toLowerCase();
-  const rows = document.querySelectorAll('#returnedTable tbody tr');
-  rows.forEach(row => {
+  
+  // Search returned table
+  const returnedRows = document.querySelectorAll('#returnedTable tbody tr');
+  returnedRows.forEach(row => {
     const rowText = row.textContent.toLowerCase();
     row.style.display = rowText.includes(filter) ? '' : 'none';
   });

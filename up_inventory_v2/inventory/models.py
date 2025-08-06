@@ -58,3 +58,42 @@ class BorrowRecord(models.Model):
     
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
+
+
+
+
+
+
+
+
+
+# Add to inventory/models.py
+class HistoryLog(models.Model):
+    ACTION_CHOICES = [
+        ('create', 'Create'),
+        ('update', 'Update'),
+        ('delete', 'Delete'),
+        ('borrow', 'Borrow'),
+        ('return', 'Return'),
+        ('login', 'Login'),
+        ('logout', 'Logout'),
+        ('user_create', 'User Create'),
+        ('user_update', 'User Update'),
+        ('user_delete', 'User Delete'),
+    ]
+
+    user = models.ForeignKey('accounts.CustomUser', on_delete=models.SET_NULL, null=True, blank=True)
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    model_name = models.CharField(max_length=50)
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    details = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+        verbose_name = 'History Log'
+        verbose_name_plural = 'History Logs'
+
+    def __str__(self):
+        return f"{self.get_action_display()} {self.model_name} by {self.user} at {self.timestamp}"

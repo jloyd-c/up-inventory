@@ -18,6 +18,7 @@
   </div>
 
   <!-- Stats Cards -->
+  <h4 class="section-title mb-3"><i class="fas fa-chart-bar me-2"></i>Overview Statistics</h4>
   <div class="row mb-4">
     <div class="col-md-3">
       <div class="card stat-card bg-primary text-white">
@@ -77,14 +78,12 @@
   <div class="row">
     <!-- Recent Borrowed Devices -->
     <div class="col-md-6">
+      <h4 class="section-title mb-3"><i class="fas fa-clock me-2"></i>Recently Borrowed Devices</h4>
       <div class="card shadow rounded-4">
-        <div class="card-header bg-danger text-white">
-          <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Recently Borrowed Devices</h5>
-        </div>
         <div class="card-body">
           <div class="table-responsive">
             <table class="table table-hover table-striped align-middle">
-              <thead>
+              <thead class="table-light">
                 <tr>
                   <th>Staff</th>
                   <th>Device</th>
@@ -113,14 +112,12 @@
 
     <!-- Recent Returns -->
     <div class="col-md-6">
+      <h4 class="section-title mb-3"><i class="fas fa-undo me-2"></i>Recent Returns</h4>
       <div class="card shadow rounded-4">
-        <div class="card-header bg-success text-white">
-          <h5 class="mb-0"><i class="fas fa-undo me-2"></i>Recent Returns</h5>
-        </div>
         <div class="card-body">
           <div class="table-responsive">
             <table class="table table-hover table-striped align-middle">
-              <thead>
+              <thead class="table-light">
                 <tr>
                   <th>Staff</th>
                   <th>Device</th>
@@ -151,26 +148,17 @@
   <!-- Device Status Overview -->
   <div class="row mt-4">
     <div class="col-md-12">
+      <h4 class="section-title mb-3"><i class="fas fa-list-check me-2"></i>Device Status Summary</h4>
       <div class="card shadow rounded-4">
-        <div class="card-header bg-info text-white">
-          <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Device Status Overview</h5>
-        </div>
         <div class="card-body">
-          <div class="row">
-            <div class="col-md-8">
-              <canvas id="deviceStatusChart" height="200"></canvas>
-            </div>
-            <div class="col-md-4">
-              <ul class="list-group">
-                {% for status in device_status_counts %}
-                <li class="list-group-item d-flex justify-content-between align-items-center">
-                  {{ status.status|title }}
-                  <span class="badge bg-primary rounded-pill">{{ status.count }}</span>
-                </li>
-                {% endfor %}
-              </ul>
-            </div>
-          </div>
+          <ul class="list-group">
+            {% for status in device_status_counts %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              {{ status.status|title }}
+              <span class="badge bg-primary rounded-pill">{{ status.count }}</span>
+            </li>
+            {% endfor %}
+          </ul>
         </div>
       </div>
     </div>
@@ -179,12 +167,10 @@
   <!-- Quick Actions -->
   <div class="row mt-4">
     <div class="col-md-12">
+      <h4 class="section-title mb-3"><i class="fas fa-bolt me-2"></i>Quick Actions</h4>
       <div class="card shadow rounded-4">
-        <div class="card-header bg-secondary text-white">
-          <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Quick Actions</h5>
-        </div>
         <div class="card-body">
-          <div class="d-flex justify-content-around">
+          <div class="d-flex justify-content-around flex-wrap gap-2">
             <a href="{% url 'staff' %}" class="btn btn-action btn-primary">
               <i class="fas fa-users me-1"></i> Manage Staff
             </a>
@@ -203,139 +189,6 @@
     </div>
   </div>
 </div>
-
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-
-<script>
-// Device Status Chart
-document.addEventListener('DOMContentLoaded', function() {
-  const ctx = document.getElementById('deviceStatusChart');
-  
-  if (ctx) {
-    try {
-      // Prepare chart data
-      const statusData = {
-        labels: [
-          {% for status in device_status_counts %}
-            '{{ status.status|title }}'{% if not forloop.last %},{% endif %}
-          {% endfor %}
-        ],
-        datasets: [{
-          data: [
-            {% for status in device_status_counts %}
-              {{ status.count }}{% if not forloop.last %},{% endif %}
-            {% endfor %}
-          ],
-          backgroundColor: [
-            '#4e73df',  // Blue
-            '#1cc88a',  // Green
-            '#36b9cc',  // Cyan
-            '#f6c23e',  // Yellow
-            '#e74a3b',  // Red
-            '#6c757d',  // Gray (fallback)
-            '#858796',  // Gray (fallback)
-            '#5a5c69'   // Dark gray (fallback)
-          ],
-          hoverBackgroundColor: [
-            '#2e59d9',  // Darker blue
-            '#17a673',  // Darker green
-            '#2c9faf',  // Darker cyan
-            '#dda20a',  // Darker yellow
-            '#be2617',  // Darker red
-            '#5a6268',  // Darker gray
-            '#6c757d',  // Darker gray
-            '#4a4c55'   // Darker gray
-          ],
-          borderWidth: 1,
-          hoverBorderColor: "rgba(234, 236, 244, 1)",
-        }]
-      };
-
-      // Chart configuration
-      const config = {
-        type: 'doughnut',
-        data: statusData,
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          cutout: '70%',
-          plugins: {
-            legend: {
-              position: 'right',
-              labels: {
-                padding: 20,
-                usePointStyle: true,
-                pointStyle: 'circle',
-                font: {
-                  family: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-                  size: 12,
-                  weight: '500'
-                },
-                color: '#5a5c69'
-              }
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const label = context.label || '';
-                  const value = context.raw || 0;
-                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                  const percentage = Math.round((value / total) * 100);
-                  return `${label}: ${value} (${percentage}%)`;
-                }
-              },
-              backgroundColor: 'rgba(0, 0, 0, 0.7)',
-              titleFont: {
-                size: 14,
-                weight: 'bold'
-              },
-              bodyFont: {
-                size: 12
-              },
-              padding: 12,
-              cornerRadius: 6
-            }
-          },
-          animation: {
-            animateScale: true,
-            animateRotate: true
-          },
-          elements: {
-            arc: {
-              borderWidth: 0
-            }
-          }
-        }
-      };
-
-      // Create the chart
-      const deviceStatusChart = new Chart(ctx, config);
-
-      // Handle window resize
-      let resizeTimer;
-      window.addEventListener('resize', function() {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(function() {
-          deviceStatusChart.resize();
-        }, 200);
-      });
-
-    } catch (error) {
-      console.error('Error initializing chart:', error);
-      ctx.parentElement.innerHTML = `
-        <div class="chart-error">
-          <i class="fas fa-exclamation-triangle"></i>
-          <p>Could not load chart data</p>
-        </div>
-      `;
-    }
-  } else {
-    console.warn('Chart canvas element not found');
-  }
-});
-</script>
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
