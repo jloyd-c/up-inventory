@@ -26,13 +26,14 @@
       <!-- Navigation -->
       <nav>
         <a href="{% url 'dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="{% url 'devices' %}" class="{% if request.resolver_match.url_name == 'devices' %}active{% endif %}">Asset</a>
         <a href="{% url 'inventory' %}" class="{% if request.resolver_match.url_name == 'inventory' %}active{% endif %}">Inventory</a>
         <a href="{% url 'staff' %}" class="{% if request.resolver_match.url_name == 'staff' %}active{% endif %}">Staff</a>
-        <a href="{% url 'devices' %}" class="{% if request.resolver_match.url_name == 'devices' %}active{% endif %}">Device</a>
+        
 
         <!-- Others dropdown -->
 <div class="dropdown">
-  <button class="dropbtn">Others</button>
+  <button class="dropbtn">Settings</button>
   <div class="dropdown-content">
     {% if request.user.is_authenticated %}
       {% if request.user.is_superuser %}

@@ -617,7 +617,7 @@ def export_inventory_excel(request):
     
     # Borrowed Devices Sheet
     ws1 = wb.active
-    ws1.title = "Borrowed Devices"
+    ws1.title = "Add Asset"
     ws1.append(['Name of Staff', 'Department', 'Equipment', 'Model/Brand',
                 'Date Issued', 'Serial Number', 'PR Number', 'Remarks'])
 
@@ -634,7 +634,7 @@ def export_inventory_excel(request):
         ])
 
     # Returned Devices Sheet
-    ws2 = wb.create_sheet(title="Returned Devices")
+    ws2 = wb.create_sheet(title="Returned Asset")
     ws2.append(['Name of Staff', 'Department', 'Equipment', 'Model/Brand',
                 'Date Issued', 'Date Returned', 'Serial Number', 'PR Number', 'Remarks'])
 

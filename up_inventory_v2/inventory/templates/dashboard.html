@@ -28,7 +28,7 @@
           </div>
           <div class="stat-content">
             <h3>{{ total_devices }}</h3>
-            <p>Total Devices</p>
+            <p>Total Asset</p>
           </div>
         </div>
       </div>
@@ -54,7 +54,7 @@
           </div>
           <div class="stat-content">
             <h3>{{ borrowed_devices }}</h3>
-            <p>Borrowed Devices</p>
+            <p>Department</p>
           </div>
         </div>
       </div>
@@ -67,7 +67,7 @@
           </div>
           <div class="stat-content">
             <h3>{{ available_devices }}</h3>
-            <p>Available Devices</p>
+            <p>Available Asset</p>
           </div>
         </div>
       </div>
@@ -78,7 +78,7 @@
   <div class="row">
     <!-- Recent Borrowed Devices -->
     <div class="col-md-6">
-      <h4 class="section-title mb-3"><i class="fas fa-clock me-2"></i>Recently Borrowed Devices</h4>
+      <h4 class="section-title mb-3"><i class="fas fa-clock me-2"></i>Recently Distributed Asset</h4>
       <div class="card shadow rounded-4">
         <div class="card-body">
           <div class="table-responsive">
@@ -112,7 +112,7 @@
 
     <!-- Recent Returns -->
     <div class="col-md-6">
-      <h4 class="section-title mb-3"><i class="fas fa-undo me-2"></i>Recent Returns</h4>
+      <h4 class="section-title mb-3"><i class="fas fa-undo me-2"></i>Recent Returned Asset</h4>
       <div class="card shadow rounded-4">
         <div class="card-body">
           <div class="table-responsive">
@@ -148,7 +148,7 @@
   <!-- Device Status Overview -->
   <div class="row mt-4">
     <div class="col-md-12">
-      <h4 class="section-title mb-3"><i class="fas fa-list-check me-2"></i>Device Status Summary</h4>
+      <h4 class="section-title mb-3"><i class="fas fa-list-check me-2"></i>Asset Status Summary</h4>
       <div class="card shadow rounded-4">
         <div class="card-body">
           <ul class="list-group">
@@ -164,31 +164,7 @@
     </div>
   </div>
 
-  <!-- Quick Actions -->
-  <div class="row mt-4">
-    <div class="col-md-12">
-      <h4 class="section-title mb-3"><i class="fas fa-bolt me-2"></i>Quick Actions</h4>
-      <div class="card shadow rounded-4">
-        <div class="card-body">
-          <div class="d-flex justify-content-around flex-wrap gap-2">
-            <a href="{% url 'staff' %}" class="btn btn-action btn-primary">
-              <i class="fas fa-users me-1"></i> Manage Staff
-            </a>
-            <a href="{% url 'devices' %}" class="btn btn-action btn-primary">
-              <i class="fas fa-laptop me-1"></i> Manage Devices
-            </a>
-            <a href="{% url 'inventory' %}" class="btn btn-action btn-primary">
-              <i class="fas fa-exchange-alt me-1"></i> Manage Inventory
-            </a>
-            <a href="{% url 'department' %}" class="btn btn-action btn-primary">
-              <i class="fas fa-building me-1"></i> Manage Departments
-            </a>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
+
 
 <!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

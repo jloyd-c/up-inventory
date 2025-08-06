@@ -10,11 +10,11 @@
 <div class="staff-page container mt-4">
   <!-- Top Bar -->
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0"><i class="fas fa-desktop me-2"></i>Device Management</h2>
+    <h2 class="mb-0"><i class="fas fa-desktop me-2"></i>Asset</h2>
     <div class="d-flex gap-2">
       {% if user.is_superuser %}
       <button class="btn btn-primary" onclick="openAddModal()">
-        <i class="fas fa-plus me-1"></i>Add Device
+        <i class="fas fa-plus me-1"></i>Add Asset
       </button>
       <a href="{% url 'export_device_excel' %}{% if request.GET %}?{{ request.GET.urlencode }}{% endif %}" class="btn-download">
         <i class="fas fa-file-excel me-1"></i>Download Excel
@@ -145,7 +145,7 @@
     <div class="modal-content p-3">
       <div class="modal-header">
         <h5 class="modal-title">Add New Device</h5>
-        <button type="button" class="btn-close" onclick="closeAddModal()"></button>
+        <button type="button" class="btn-close" onclick="closeAddModal()">x</button>
       </div>
       <form method="post" action="{% url 'add_device' %}" id="addForm">
         {% csrf_token %}
@@ -186,7 +186,7 @@
     <div class="modal-content p-3">
       <div class="modal-header">
         <h5 class="modal-title">Edit Device</h5>
-        <button type="button" class="btn-close" onclick="closeEditModal()"></button>
+        <button type="button" class="btn-close" onclick="closeEditModal()">x</button>
       </div>
       <form method="post" action="" id="editForm">
         {% csrf_token %}
@@ -228,7 +228,7 @@
     <div class="modal-content p-3">
       <div class="modal-header">
         <h5 class="modal-title">Confirm Delete</h5>
-        <button type="button" class="btn-close" onclick="closeDeleteModal()"></button>
+        <button type="button" class="btn-close" onclick="closeDeleteModal()">x</button>
       </div>
       <form method="post" id="deleteForm">
         {% csrf_token %}
