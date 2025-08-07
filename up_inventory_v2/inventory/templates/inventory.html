@@ -5,7 +5,7 @@
 <!-- Font Awesome and Bootstrap CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/staff.css' %}">
+<link rel="stylesheet" href="{% static 'css/inventory.css' %}">
 
 <div class="staff-page container mt-4">
   <!-- Top Bar -->
@@ -13,242 +13,437 @@
     <h2 class="mb-0"><i class="fas fa-boxes me-2"></i>Asset Management</h2>
     <div class="d-flex gap-2">
       <button class="btn btn-primary" onclick="document.getElementById('borrowModal').style.display='flex'">
-        <i class="fas fa-plus me-1"></i>Add Asset
+        <i class="fas fa-plus me-1"></i>Distribute Asset
       </button>
       <button class="btn btn-primary" onclick="document.getElementById('returnModal').style.display='flex'">
         <i class="fas fa-undo me-1"></i>Return Asset
       </button>
-      <a href="{% url 'export_inventory_excel' %}?date={{ filter_date|urlencode }}" class="btn-download">
-        <i class="fas fa-file-excel me-1"></i>Download Excel
+      <a href="{% url 'export_inventory_excel' %}?date={{ filter_date|urlencode }}" class="btn btn-success">
+        <i class="fas fa-file-excel me-1"></i> Download Excel
       </a>
     </div>
   </div>
 
   <!-- Search & Filter Bar -->
-<div class="row mb-3">
-  <div class="col-md-6">
-    <form method="GET" action="{% url 'inventory' %}" id="searchForm">
-      <div class="input-group">
-        <input type="text" class="form-control" placeholder="Search inventory..." name="q" value="{{ request.GET.q }}" id="searchInput">
-        <button class="btn btn-primary" type="submit">
-          <i class="fas fa-search"></i>
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <form method="GET" action="{% url 'inventory' %}" id="searchForm">
+        <div class="input-group">
+          <input type="text" class="form-control" placeholder="Search inventory..." name="q" value="{{ request.GET.q }}" id="searchInput">
+          <button class="btn btn-primary" type="submit">
+            <i class="fas fa-search"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+    <div class="col-md-6 text-end">
+      <div class="dropdown">
+        <button class="btn btn-filter dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+          <i class="fas fa-filter me-1"></i>Filter
         </button>
-      </div>
-    </form>
-  </div>
-  <div class="col-md-6 text-end">
-    <div class="dropdown">
-      <button class="btn btn-filter dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
-        <i class="fas fa-filter me-1"></i>Filter
-      </button>
-      <div class="dropdown-menu dropdown-menu-end filter-dropdown p-3" aria-labelledby="filterDropdown">
-        <form method="GET" action="{% url 'inventory' %}" id="filterForm">
-          <input type="hidden" name="q" value="{{ request.GET.q }}">
-          
-          <div class="filter-section mb-3">
-            <label class="filter-label">Staff Name</label>
-            <select class="form-select filter-select" name="staff_name" id="staffNameFilter">
-              <option value="">All Staff</option>
-              {% for staff in all_staff %}
-              <option value="{{ staff.id }}" {% if request.GET.staff_name == staff.id|stringformat:"s" %}selected{% endif %}>
-                {{ staff.full_name }}
-              </option>
-              {% endfor %}
-            </select>
-          </div>
-          
-          <div class="filter-section mb-3">
-            <label class="filter-label">Date</label>
-            <input type="date" class="form-control date-input" name="date" id="filterDate" value="{{ filter_date }}">
-          </div>
-          
-          <div class="filter-section mb-3">
-            <label class="filter-label">Status</label>
-            <select class="form-select filter-select" name="status" id="statusFilter">
-              <option value="">All Statuses</option>
-              <option value="borrowed" {% if request.GET.status == 'borrowed' %}selected{% endif %}>Borrowed Only</option>
-              <option value="returned" {% if request.GET.status == 'returned' %}selected{% endif %}>Returned Only</option>
-            </select>
-          </div>
-          
-          <div class="d-flex justify-content-between mt-3">
-            <button type="button" class="btn btn-secondary" onclick="resetFilters()">Reset</button>
-            <button type="submit" class="btn btn-primary">Apply</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>
-</div>
-
-  <!-- Borrowed Devices Section --> 
-  <div class="mb-4">
-    <h4 class="mb-3"><i class="fas fa-laptop me-2"></i>Distributed Asset</h4>
-    <div class="card shadow rounded-4">
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-hover table-striped align-middle text-center" id="borrowedTable">
-            <thead class="table-light">
-              <tr>
-                <th>Staff Name</th>
-                <th>Department</th>
-                <th>Asset</th>
-                <th>Model/Brand</th>
-                <th>Date Issued</th>
-                <th>Serial Number</th>
-                <th>PR Number</th>
-                <th>Remarks</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for record in borrowed_records %}
-              <tr>
-                <td>{{ record.staff.full_name }}</td>
-                <td>{{ record.staff.department.name }}</td>
-                <td>{{ record.device.name }}</td>
-                <td>{{ record.device.model_brand }}</td>
-                <td>{{ record.date_issued|date:"Y-m-d H:i" }}</td>
-                <td>{{ record.device.serial_number }}</td>
-                <td>{{ record.pr_number }}</td>
-                <td>{{ record.remarks }}</td>
-                <td class="action-style text-center">
-                  <button class="btn btn-action btn-edit" onclick="openEditBorrowModal('{{ record.id }}')">
-                    <i class="fas fa-edit"></i> Edit
+        <div class="dropdown-menu dropdown-menu-end filter-dropdown p-3" aria-labelledby="filterDropdown" style="width: 300px;">
+          <form method="GET" action="{% url 'inventory' %}" id="filterForm" onclick="event.stopPropagation()">
+            <input type="hidden" name="q" value="{{ request.GET.q }}">
+            
+            <!-- Accordion Filter Sections -->
+            <div class="accordion" id="filterAccordion">
+              <!-- Staff Filter -->
+              <div class="accordion-item border-0 mb-2">
+                <h2 class="accordion-header">
+                  <button class="accordion-button py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseStaff" aria-expanded="true">
+                    <i class="fas fa-user me-2"></i> Staff
                   </button>
-                </td>
-              </tr>
-              {% empty %}
-              <tr><td colspan="9">No borrowed devices.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
+                </h2>
+                <div id="collapseStaff" class="accordion-collapse collapse show" data-bs-parent="#filterAccordion">
+                  <div class="accordion-body p-0">
+                    <select class="form-select filter-select" name="staff_name" id="staffNameFilter">
+                      <option value="">All Staff</option>
+                      {% for staff in all_staff %}
+                      <option value="{{ staff.id }}" {% if request.GET.staff_name == staff.id|stringformat:"s" %}selected{% endif %}>
+                        {{ staff.full_name }}
+                      </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Date Filter -->
+              <div class="accordion-item border-0 mb-2">
+                <h2 class="accordion-header">
+                  <button class="accordion-button py-2 collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDate">
+                    <i class="fas fa-calendar me-2"></i> Date
+                  </button>
+                </h2>
+                <div id="collapseDate" class="accordion-collapse collapse" data-bs-parent="#filterAccordion">
+                  <div class="accordion-body p-0">
+                    <input type="date" class="form-control date-input" name="date" id="filterDate" value="{{ filter_date }}">
+                  </div>
+                </div>
+              </div>
+
+              <!-- Status Filter -->
+              <div class="accordion-item border-0">
+                <h2 class="accordion-header">
+                  <button class="accordion-button py-2 collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseStatus">
+                    <i class="fas fa-check-circle me-2"></i> Status
+                  </button>
+                </h2>
+                <div id="collapseStatus" class="accordion-collapse collapse" data-bs-parent="#filterAccordion">
+                  <div class="accordion-body p-0">
+                    <select class="form-select filter-select" name="status" id="statusFilter">
+                      <option value="">All Statuses</option>
+                      <option value="borrowed" {% if request.GET.status == 'borrowed' %}selected{% endif %}>Distributed Only</option>
+                      <option value="returned" {% if request.GET.status == 'returned' %}selected{% endif %}>Returned Only</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-3">
+              <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetFilters()">Reset</button>
+              <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+            </div>
+          </form>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Returned Devices Section -->
-  <div>
-    <h4 class="mb-3"><i class="fas fa-check-circle me-2"></i>Returned Asset</h4>
-    <div class="card shadow rounded-4">
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-hover table-striped align-middle text-center" id="returnedTable">
-            <thead class="table-light">
-              <tr>
-                <th>Staff Name</th>
-                <th>Department</th>
-                <th>Asset</th>
-                <th>Model/Brand</th>
-                <th>Date Issued</th>
-                <th>Date Returned</th>
-                <th>Serial Number</th>
-                <th>PR Number</th>
-                <th>Remarks</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for record in returned_records %}
-              <tr>
-                <td>{{ record.staff.full_name }}</td>
-                <td>{{ record.staff.department.name }}</td>
-                <td>{{ record.device.name }}</td>
-                <td>{{ record.device.model_brand }}</td>
-                <td>{{ record.date_issued|date:"Y-m-d H:i" }}</td>
-                <td>{{ record.date_returned|date:"Y-m-d H:i" }}</td>
-                <td>{{ record.device.serial_number }}</td>
-                <td>{{ record.pr_number }}</td>
-                <td>{{ record.remarks }}</td>
-                <td class="action-style text-center">
-                  <button class="btn btn-action btn-edit" onclick="openEditReturnModal('{{ record.id }}')">
-                    <i class="fas fa-edit"></i> Edit
-                  </button>
-                  <button class="btn btn-action btn-delete" onclick="openDeleteReturnModal('{{ record.id }}')">
-                    <i class="fas fa-trash-alt"></i> Delete
-                  </button>
-                </td>
-              </tr>
-              {% empty %}
-              <tr><td colspan="10">No returned devices.</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
+  <!-- Accordion Sections -->
+  <div class="accordion" id="inventoryAccordion">
+    <!-- Distributed Assets Section -->
+    <div class="accordion-item mb-3">
+      <h2 class="accordion-header" id="headingBorrowed">
+        <button class="accordion-button bg-danger text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBorrowed" aria-expanded="true" aria-controls="collapseBorrowed">
+          <i class="fas fa-laptop me-2"></i>Distributed Asset ({{ borrowed_records|length }})
+        </button>
+      </h2>
+      <div id="collapseBorrowed" class="accordion-collapse collapse show" aria-labelledby="headingBorrowed">
+        <div class="accordion-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover table-striped align-middle text-center" id="borrowedTable">
+              <thead class="table-light">
+                <tr>
+                  <th>Image</th>
+                  <th>Staff Name</th>
+                  <th>Department</th>
+                  <th>Asset</th>
+                  <th>Model/Brand</th>
+                  <th>Date Issued</th>
+                  <th>Serial Number</th>
+                  <th>PR Number</th>
+                  <th>Remarks</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for record in borrowed_records %}
+                <tr>
+                  <td>
+                    {% if record.device.image %}
+                    <img src="{{ record.device.image.url }}" alt="{{ record.device.name }}" 
+                         style="max-height: 50px; cursor: pointer;" 
+                         class="img-thumbnail device-image"
+                         onclick="openImageViewer('{{ record.device.image.url }}', '{{ record.device.name }}')">
+                    {% else %}
+                    <span class="text-muted">No image</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ record.staff.full_name }}</td>
+                  <td>{{ record.staff.department.name }}</td>
+                  <td>{{ record.device.name }}</td>
+                  <td>{{ record.device.model_brand }}</td>
+                  <td>{{ record.date_issued|date:"Y-m-d H:i" }}</td>
+                  <td>{{ record.device.serial_number }}</td>
+                  <td>{{ record.pr_number }}</td>
+                  <td>{{ record.remarks }}</td>
+                  <td class="action-cell">
+                    <div class="action-buttons">
+                      <button class="btn btn-info btn-sm action-btn" onclick="openViewModal(this)"
+                        data-name="{{ record.device.name }}"
+                        data-model-brand="{{ record.device.model_brand }}"
+                        data-serial-number="{{ record.device.serial_number }}"
+                        data-status="{{ record.device.get_status_display }}"
+                        data-date-issued="{{ record.date_issued|date:'F j, Y H:i' }}"
+                        data-staff-name="{{ record.staff.full_name }}"
+                        data-department="{{ record.staff.department.name }}"
+                        data-pr-number="{{ record.pr_number }}"
+                        data-remarks="{{ record.remarks }}"
+                        data-image-url="{% if record.device.image %}{{ record.device.image.url }}{% endif %}">
+                        <i class="fas fa-eye me-1"></i> View
+                      </button>
+                      <button class="btn btn-danger btn-sm action-btn" onclick="downloadPDF('{{ record.id }}', 'borrowed')">
+                        <i class="fas fa-file-pdf me-1"></i> PDF
+                      </button>
+                      <!--<button class="btn btn-primary btn-sm action-btn" onclick="openEditBorrowModal('{{ record.id }}')">
+                        <i class="fas fa-edit me-1"></i> Edit
+                      </button>-->
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="10">No borrowed devices.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Returned Assets Section -->
+    <div class="accordion-item">
+      <h2 class="accordion-header" id="headingReturned">
+        <button class="accordion-button collapsed bg-danger text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseReturned" aria-expanded="false" aria-controls="collapseReturned">
+          <i class="fas fa-check-circle me-2"></i>Returned Asset ({{ returned_records|length }})
+        </button>
+      </h2>
+      <div id="collapseReturned" class="accordion-collapse collapse" aria-labelledby="headingReturned">
+        <div class="accordion-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover table-striped align-middle text-center" id="returnedTable">
+              <thead class="table-light">
+                <tr>
+                  <th>Image</th>
+                  <th>Staff Name</th>
+                  <th>Department</th>
+                  <th>Asset</th>
+                  <th>Model/Brand</th>
+                  <th>Date Issued</th>
+                  <th>Date Returned</th>
+                  <th>Serial Number</th>
+                  <th>PR Number</th>
+                  <th>Remarks</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for record in returned_records %}
+                <tr>
+                  <td>
+                    {% if record.device.image %}
+                    <img src="{{ record.device.image.url }}" alt="{{ record.device.name }}" 
+                         style="max-height: 50px; cursor: pointer;" 
+                         class="img-thumbnail device-image"
+                         onclick="openImageViewer('{{ record.device.image.url }}', '{{ record.device.name }}')">
+                    {% else %}
+                    <span class="text-muted">No image</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ record.staff.full_name }}</td>
+                  <td>{{ record.staff.department.name }}</td>
+                  <td>{{ record.device.name }}</td>
+                  <td>{{ record.device.model_brand }}</td>
+                  <td>{{ record.date_issued|date:"Y-m-d H:i" }}</td>
+                  <td>{{ record.date_returned|date:"Y-m-d H:i" }}</td>
+                  <td>{{ record.device.serial_number }}</td>
+                  <td>{{ record.pr_number }}</td>
+                  <td>{{ record.remarks }}</td>
+                  <td class="action-cell">
+                    <div class="action-buttons">
+                      <button class="btn btn-info btn-sm action-btn" onclick="openViewModal(this)"
+                        data-name="{{ record.device.name }}"
+                        data-model-brand="{{ record.device.model_brand }}"
+                        data-serial-number="{{ record.device.serial_number }}"
+                        data-status="{{ record.device.get_status_display }}"
+                        data-date-issued="{{ record.date_issued|date:'F j, Y H:i' }}"
+                        data-date-returned="{{ record.date_returned|date:'F j, Y H:i' }}"
+                        data-staff-name="{{ record.staff.full_name }}"
+                        data-department="{{ record.staff.department.name }}"
+                        data-pr-number="{{ record.pr_number }}"
+                        data-remarks="{{ record.remarks }}"
+                        data-image-url="{% if record.device.image %}{{ record.device.image.url }}{% endif %}">
+                        <i class="fas fa-eye me-1"></i> View
+                      </button>
+                      <button class="btn btn-danger btn-sm action-btn" onclick="downloadPDF('{{ record.id }}', 'returned')">
+                        <i class="fas fa-file-pdf me-1"></i> PDF
+                      </button>
+                      <button class="btn btn-primary btn-sm action-btn" onclick="openEditReturnModal('{{ record.id }}')">
+                        <i class="fas fa-edit me-1"></i> Edit
+                      </button>
+                      <button class="btn btn-danger btn-sm action-btn" onclick="openDeleteReturnModal('{{ record.id }}')">
+                        <i class="fas fa-trash-alt me-1"></i> Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="11">No returned devices.</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Borrow Modal -->
+<!-- Borrow Modal (Redesigned with 2-Column Grid) -->
 <div id="borrowModal" class="modal">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content p-3">
       <div class="modal-header">
-        <h5 class="modal-title">Add Asset</h5>
+        <h5 class="modal-title">Distribute Asset</h5>
         <button type="button" class="btn-close" onclick="closeModal('borrowModal')"></button>
       </div>
       <form method="post" class="staff-form">
         {% csrf_token %}
         <input type="hidden" name="borrow_submit" value="1">
         <div class="modal-body">
-          <div class="mb-3">
-            <label for="staff_select">Staff</label>
-            <select name="staff" id="staff_select" class="form-select" onchange="fillStaffInfo()" required>
-              <option value="">Select staff</option>
-              {% for staff in active_staff %}
-              <option value="{{ staff.id }}" data-name="{{ staff.full_name }}" data-department="{{ staff.department.name }}">
-                {{ staff.full_name }} ({{ staff.department.name }})
-              </option>
-              {% endfor %}
-            </select>
+          <div class="row g-3"> <!-- Grid row with gutter spacing -->
+            <!-- Left Column -->
+            <div class="col-md-6">
+              <!-- Staff Selection -->
+              <div class="mb-3">
+                <label for="staff_select" class="form-label">Staff</label>
+                <select name="staff" id="staff_select" class="form-select" onchange="fillStaffInfo()" required>
+                  <option value="">Select staff</option>
+                  {% for staff in active_staff %}
+                  <option value="{{ staff.id }}" data-name="{{ staff.full_name }}" data-department="{{ staff.department.name }}">
+                    {{ staff.full_name }} ({{ staff.department.name }})
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Auto-filled Staff Info -->
+              <div class="mb-3">
+                <label class="form-label">Staff Name</label>
+                <input type="text" id="staff_name" class="form-control" readonly>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Department</label>
+                <input type="text" id="staff_department" class="form-control" readonly>
+              </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="col-md-6">
+              <!-- Asset Selection -->
+              <div class="mb-3">
+                <label for="device_select" class="form-label">Asset</label>
+                <select name="device" id="device_select" class="form-select" onchange="fillDeviceInfo()" required>
+                  <option value="">Select device</option>
+                  {% for device in available_devices %}
+                  <option value="{{ device.id }}" data-name="{{ device.name }}" data-model="{{ device.model_brand }}" data-serial="{{ device.serial_number }}">
+                    {{ device.name }} - {{ device.model_brand }} ({{ device.serial_number }})
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+
+              <!-- Auto-filled Device Info -->
+              <div class="mb-3">
+                <label class="form-label">Asset Name</label>
+                <input type="text" id="device_name" class="form-control" readonly>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Model/Brand</label>
+                <input type="text" id="device_model" class="form-control" readonly>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Serial Number</label>
+                <input type="text" id="device_serial" class="form-control" readonly>
+              </div>
+            </div>
           </div>
-          <div class="mb-3">
-            <label>Name of Staff</label>
-            <input type="text" id="staff_name" class="form-control" readonly>
-          </div>
-          <div class="mb-3">
-            <label>Department</label>
-            <input type="text" id="staff_department" class="form-control" readonly>
-          </div>
-          <div class="mb-3">
-            <label for="device_select">Device</label>
-            <select name="device" id="device_select" class="form-select" onchange="fillDeviceInfo()" required>
-              <option value="">Select device</option>
-              {% for device in available_devices %}
-              <option value="{{ device.id }}" data-name="{{ device.name }}" data-model="{{ device.model_brand }}" data-serial="{{ device.serial_number }}">
-                {{ device.name }} - {{ device.model_brand }} ({{ device.serial_number }})
-              </option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="mb-3">
-            <label>Equipment</label>
-            <input type="text" id="device_name" class="form-control" readonly>
-          </div>
-          <div class="mb-3">
-            <label>Model/Brand</label>
-            <input type="text" id="device_model" class="form-control" readonly>
-          </div>
-          <div class="mb-3">
-            <label>Serial Number</label>
-            <input type="text" id="device_serial" class="form-control" readonly>
-          </div>
-          <div class="mb-3">
-            <label>PR Number</label>
-            <input type="text" name="pr_number" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label>Remarks</label>
-            <textarea name="remarks" class="form-control"></textarea>
+
+          <!-- Full-width Fields (PR Number & Remarks) -->
+          <div class="row">
+            <div class="col-12">
+              <div class="mb-3">
+                <label class="form-label">PR Number</label>
+                <input type="text" name="pr_number" class="form-control" required>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Remarks</label>
+                <textarea name="remarks" class="form-control" rows="2"></textarea>
+              </div>
+            </div>
           </div>
         </div>
+
         <div class="modal-footer">
-          <button type="submit" class="btn btn-success">Confirm Borrow</button>
+          <button type="submit" class="btn btn-success">Confirm Distribution</button>
           <button type="button" class="btn btn-secondary" onclick="closeModal('borrowModal')">Cancel</button>
         </div>
       </form>
+    </div>
+  </div>
+</div>
+
+<!-- View Modal -->
+<div class="modal" id="viewModal" tabindex="-1" style="display:none;">
+  <div class="modal-dialog modal-dialog-centered modal-lg modal-landscape">
+    <div class="modal-content p-3">
+      <div class="modal-header">
+        <h5 class="modal-title">Asset Details</h5>
+        <button type="button" class="btn-close" onclick="closeViewModal()"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Big image on top -->
+        <div class="view-modal-image-container mb-4">
+          <div id="view-image-container" class="text-center">
+            <img id="view-image" src="" class="img-fluid rounded" style="max-height: 300px; width: auto;">
+          </div>
+        </div>
+        
+        <!-- Table below the image -->
+        <div class="view-modal-table-container">
+          <table class="table table-bordered view-modal-table">
+            <tr>
+              <th width="30%">Asset Name:</th>
+              <td id="view-name"></td>
+            </tr>
+            <tr>
+              <th>Model/Brand:</th>
+              <td id="view-model-brand"></td>
+            </tr>
+            <tr>
+              <th>Serial Number:</th>
+              <td id="view-serial-number"></td>
+            </tr>
+            <tr>
+              <th>Status:</th>
+              <td id="view-status"></td>
+            </tr>
+            <tr>
+              <th>Staff Name:</th>
+              <td id="view-staff-name"></td>
+            </tr>
+            <tr>
+              <th>Department:</th>
+              <td id="view-department"></td>
+            </tr>
+            <tr>
+              <th>Date Issued:</th>
+              <td id="view-date-issued"></td>
+            </tr>
+            <tr id="view-date-returned-row">
+              <th>Date Returned:</th>
+              <td id="view-date-returned"></td>
+            </tr>
+            <tr>
+              <th>PR Number:</th>
+              <td id="view-pr-number"></td>
+            </tr>
+            <tr>
+              <th>Remarks:</th>
+              <td id="view-remarks"></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" type="button" onclick="closeViewModal()">Close</button>
+      </div>
     </div>
   </div>
 </div>
@@ -278,12 +473,13 @@
             <textarea name="return_remarks" class="form-control"></textarea>
           </div>
           <div class="mb-3">
-            <label>Device Condition</label>
+            <label>Asset Condition</label>
             <select name="device_status" class="form-select">
               <option value="available">Available</option>
               <option value="damaged">Damaged</option>
               <option value="maintenance">Maintenance</option>
               <option value="lost">Lost</option>
+              <option value="condemned">Condemned</option>
             </select>
           </div>
         </div>
@@ -296,45 +492,60 @@
   </div>
 </div>
 
-<!-- Edit Borrow Modal -->
+<!-- Edit Borrow Modal (Redesigned with 2-Column Grid) -->
 <div class="modal" id="editBorrowModal" tabindex="-1" style="display:none;">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content p-3">
       <div class="modal-header">
-        <h5 class="modal-title">Edit Borrow Record</h5>
+        <h5 class="modal-title">Edit Distributed Asset</h5>
         <button type="button" class="btn-close" onclick="closeEditBorrowModal()"></button>
       </div>
       <form method="post" action="" id="editBorrowForm">
         {% csrf_token %}
         <input type="hidden" name="id" id="edit-borrow-id" />
         <div class="modal-body">
-          <div class="mb-3">
-            <label>Staff Name</label>
-            <input type="text" name="staff_name" id="edit-borrow-staff-name" class="form-control" readonly>
+          <div class="row g-3">
+            <!-- Left Column -->
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label>Staff Name</label>
+                <input type="text" name="staff_name" id="edit-borrow-staff-name" class="form-control" readonly>
+              </div>
+              <div class="mb-3">
+                <label>Department</label>
+                <input type="text" name="department" id="edit-borrow-department" class="form-control" readonly>
+              </div>
+            </div>
+            
+            <!-- Right Column -->
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label>Equipment</label>
+                <input type="text" name="device_name" id="edit-borrow-device-name" class="form-control" readonly>
+              </div>
+              <div class="mb-3">
+                <label>Model/Brand</label>
+                <input type="text" name="device_model" id="edit-borrow-device-model" class="form-control" readonly>
+              </div>
+            </div>
           </div>
-          <div class="mb-3">
-            <label>Department</label>
-            <input type="text" name="department" id="edit-borrow-department" class="form-control" readonly>
-          </div>
-          <div class="mb-3">
-            <label>Equipment</label>
-            <input type="text" name="device_name" id="edit-borrow-device-name" class="form-control" readonly>
-          </div>
-          <div class="mb-3">
-            <label>Model/Brand</label>
-            <input type="text" name="device_model" id="edit-borrow-device-model" class="form-control" readonly>
-          </div>
-          <div class="mb-3">
-            <label>Serial Number</label>
-            <input type="text" name="serial_number" id="edit-borrow-serial-number" class="form-control" readonly>
-          </div>
-          <div class="mb-3">
-            <label>PR Number</label>
-            <input type="text" name="pr_number" id="edit-borrow-pr-number" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label>Remarks</label>
-            <textarea name="remarks" id="edit-borrow-remarks" class="form-control"></textarea>
+          
+          <!-- Full-width Fields -->
+          <div class="row">
+            <div class="col-12">
+              <div class="mb-3">
+                <label>Serial Number</label>
+                <input type="text" name="serial_number" id="edit-borrow-serial-number" class="form-control" readonly>
+              </div>
+              <div class="mb-3">
+                <label>PR Number</label>
+                <input type="text" name="pr_number" id="edit-borrow-pr-number" class="form-control" required>
+              </div>
+              <div class="mb-3">
+                <label>Remarks</label>
+                <textarea name="remarks" id="edit-borrow-remarks" class="form-control" rows="2"></textarea>
+              </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -346,62 +557,72 @@
   </div>
 </div>
 
-<!-- Edit Return Modal -->
+
+
+<!-- Edit Return Modal (Redesigned with 2-Column Grid) -->
 <div class="modal" id="editReturnModal" tabindex="-1" style="display:none;">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content p-3">
       <div class="modal-header">
-        <h5 class="modal-title">Edit Return Record</h5>
+        <h5 class="modal-title">Edit Returned Asset</h5>
         <button type="button" class="btn-close" onclick="closeEditReturnModal()"></button>
       </div>
       <form method="post" action="" id="editReturnForm">
         {% csrf_token %}
         <input type="hidden" name="id" id="edit-return-id" />
         <div class="modal-body">
-          <div class="mb-3">
-            <label>Staff Name</label>
-            <input type="text" name="staff_name" id="edit-return-staff-name" class="form-control" readonly>
+          <div class="row g-3">
+            <!-- Left Column -->
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label>Staff Name</label>
+                <input type="text" name="staff_name" id="edit-return-staff-name" class="form-control" readonly>
+              </div>
+              <div class="mb-3">
+                <label>Department</label>
+                <input type="text" name="department" id="edit-return-department" class="form-control" readonly>
+              </div>
+            </div>
+            
+            <!-- Right Column -->
+            <div class="col-md-6">
+              <div class="mb-3">
+                <label>Equipment</label>
+                <input type="text" name="device_name" id="edit-return-device-name" class="form-control" readonly>
+              </div>
+              <div class="mb-3">
+                <label>Model/Brand</label>
+                <input type="text" name="device_model" id="edit-return-device-model" class="form-control" readonly>
+              </div>
+            </div>
           </div>
-          <div class="mb-3">
-            <label>Department</label>
-            <input type="text" name="department" id="edit-return-department" class="form-control" readonly>
-          </div>
-          <div class="mb-3">
-            <label>Equipment</label>
-            <input type="text" name="device_name" id="edit-return-device-name" class="form-control" readonly>
-          </div>
-          <div class="mb-3">
-            <label>Model/Brand</label>
-            <input type="text" name="device_model" id="edit-return-device-model" class="form-control" readonly>
-          </div>
-          <div class="mb-3">
-            <label>Serial Number</label>
-            <input type="text" name="serial_number" id="edit-return-serial-number" class="form-control" readonly>
-          </div>
-          <div class="mb-3">
-            <label>Date Issued</label>
-            <input type="text" name="date_issued" id="edit-return-date-issued" class="form-control" readonly>
-          </div>
-          <div class="mb-3">
-            <label>Date Returned</label>
-            <input type="datetime-local" name="date_returned" id="edit-return-date-returned" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label>PR Number</label>
-            <input type="text" name="pr_number" id="edit-return-pr-number" class="form-control" required>
-          </div>
-          <div class="mb-3">
-            <label>Remarks</label>
-            <textarea name="remarks" id="edit-return-remarks" class="form-control"></textarea>
-          </div>
-          <div class="mb-3">
-            <label>Device Condition</label>
-            <select name="device_status" id="edit-return-device-status" class="form-select">
-              <option value="available">Available</option>
-              <option value="damaged">Damaged</option>
-              <option value="maintenance">Maintenance</option>
-              <option value="lost">Lost</option>
-            </select>
+          
+          <!-- Full-width Fields -->
+          <div class="row">
+            <div class="col-12">
+              <div class="mb-3">
+                <label>Serial Number</label>
+                <input type="text" name="serial_number" id="edit-return-serial-number" class="form-control" readonly>
+              </div>
+              <div class="mb-3">
+                <label>PR Number</label>
+                <input type="text" name="pr_number" id="edit-return-pr-number" class="form-control" required>
+              </div>
+              <div class="mb-3">
+                <label>Remarks</label>
+                <textarea name="remarks" id="edit-return-remarks" class="form-control" rows="2"></textarea>
+              </div>
+              <div class="mb-3">
+                <label>Device Condition</label>
+                <select name="device_status" id="edit-return-device-status" class="form-select">
+                  <option value="available">Available</option>
+                  <option value="damaged">Damaged</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="lost">Lost</option>
+                  <option value="condemned">Condemned</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -435,12 +656,33 @@
   </div>
 </div>
 
+<!-- Image Viewer Modal -->
+<div class="modal fade" id="imageViewerModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" style="z-index: 1080;">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content bg-transparent border-0">
+      <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3 z-3" data-bs-dismiss="modal" aria-label="Close" style="z-index: 1081;"></button>
+      <div class="modal-body p-0 d-flex justify-content-center align-items-center">
+        <img id="fullSizeImage" src="" class="img-fluid" style="max-height: 90vh; max-width: 100%; object-fit: contain;">
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Scripts -->
 <script>
+// Global modal instance for image viewer
+let imageViewerModalInstance = null;
+
+// Modal control functions
 function closeModal(id) {
   document.getElementById(id).style.display = "none";
 }
 
+function closeViewModal() {
+  document.getElementById("viewModal").style.display = "none";
+}
+
+// Form helper functions
 function fillStaffInfo() {
   const select = document.getElementById("staff_select");
   const name = select.options[select.selectedIndex]?.getAttribute("data-name") || "";
@@ -459,6 +701,7 @@ function fillDeviceInfo() {
   document.getElementById("device_serial").value = serial;
 }
 
+// Record management functions
 function openEditBorrowModal(recordId) {
   document.getElementById("edit-borrow-id").value = recordId;
   document.getElementById("editBorrowModal").style.display = "flex";
@@ -488,6 +731,7 @@ function closeDeleteReturnModal() {
   document.getElementById('deleteReturnModal').style.display = 'none';
 }
 
+// Filter and search functions
 function resetFilters() {
   document.getElementById('staffNameFilter').value = '';
   document.getElementById('filterDate').value = '';
@@ -495,24 +739,142 @@ function resetFilters() {
   document.getElementById('filterForm').submit();
 }
 
-// Client-side search for both tables
-document.getElementById('searchInput')?.addEventListener('input', function() {
-  const filter = this.value.toLowerCase();
+// View modal functions
+function openViewModal(btn) {
+  const viewModal = document.getElementById("viewModal");
+  const imageContainer = document.getElementById("view-image-container");
   
-  // Search borrowed table
-  const borrowedRows = document.querySelectorAll('#borrowedTable tbody tr');
-  borrowedRows.forEach(row => {
-    const rowText = row.textContent.toLowerCase();
-    row.style.display = rowText.includes(filter) ? '' : 'none';
+  // Set content
+  document.getElementById("view-name").textContent = btn.dataset.name;
+  document.getElementById("view-model-brand").textContent = btn.dataset.modelBrand;
+  document.getElementById("view-serial-number").textContent = btn.dataset.serialNumber;
+  document.getElementById("view-status").textContent = btn.dataset.status;
+  document.getElementById("view-staff-name").textContent = btn.dataset.staffName;
+  document.getElementById("view-department").textContent = btn.dataset.department;
+  document.getElementById("view-date-issued").textContent = btn.dataset.dateIssued;
+  document.getElementById("view-pr-number").textContent = btn.dataset.prNumber;
+  document.getElementById("view-remarks").textContent = btn.dataset.remarks;
+  
+  // Handle returned date if it exists
+  const dateReturnedRow = document.getElementById("view-date-returned-row");
+  const dateReturnedCell = document.getElementById("view-date-returned");
+  if (btn.dataset.dateReturned) {
+    dateReturnedCell.textContent = btn.dataset.dateReturned;
+    dateReturnedRow.style.display = '';
+  } else {
+    dateReturnedRow.style.display = 'none';
+  }
+  
+  // Set image or placeholder
+  const imageUrl = btn.dataset.imageUrl;
+  if (imageUrl) {
+    imageContainer.innerHTML = `<img src="${imageUrl}" class="img-fluid rounded" style="max-height: 300px; width: auto;">`;
+  } else {
+    imageContainer.innerHTML = `
+      <div class="text-center py-5 bg-light rounded" style="width: 100%;">
+        <i class="fas fa-image fa-5x text-muted"></i>
+        <p class="mt-2">No image available</p>
+      </div>
+    `;
+  }
+  
+  viewModal.style.display = "block";
+  
+  // Ensure close button works
+  const closeBtn = viewModal.querySelector('.btn-close');
+  closeBtn.onclick = function() {
+    closeViewModal();
+  };
+}
+
+// Image viewer functions
+function openImageViewer(imageUrl, imageName) {
+  const fullSizeImage = document.getElementById('fullSizeImage');
+  fullSizeImage.src = imageUrl;
+  fullSizeImage.alt = imageName;
+  
+  if (!imageViewerModalInstance) {
+    imageViewerModalInstance = new bootstrap.Modal(document.getElementById('imageViewerModal'), {
+      backdrop: true,
+      keyboard: true
+    });
+  }
+  
+  imageViewerModalInstance.show();
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialize image viewer modal
+  imageViewerModalInstance = new bootstrap.Modal(document.getElementById('imageViewerModal'), {
+    backdrop: true,
+    keyboard: true
   });
-  
-  // Search returned table
-  const returnedRows = document.querySelectorAll('#returnedTable tbody tr');
-  returnedRows.forEach(row => {
-    const rowText = row.textContent.toLowerCase();
-    row.style.display = rowText.includes(filter) ? '' : 'none';
+
+  // Make all device images clickable
+  document.querySelectorAll('.device-image').forEach(img => {
+    img.style.cursor = 'pointer';
+    img.addEventListener('click', function() {
+      openImageViewer(this.src, this.alt);
+    });
+  });
+
+  // Client-side search for both tables
+  document.getElementById('searchInput')?.addEventListener('input', function() {
+    const filter = this.value.toLowerCase();
+    
+    // Search borrowed table
+    document.querySelectorAll('#borrowedTable tbody tr').forEach(row => {
+      row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
+    });
+    
+    // Search returned table
+    document.querySelectorAll('#returnedTable tbody tr').forEach(row => {
+      row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
+    });
+  });
+
+  // Auto-close modals when clicking outside
+  document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.style.display = 'none';
+      }
+    });
   });
 });
+
+function downloadPDF(recordId, recordType) {
+    // Create a form dynamically
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = "{% url 'download_inventory_pdf' %}";
+    
+    // Add CSRF token
+    const csrfToken = document.createElement('input');
+    csrfToken.type = 'hidden';
+    csrfToken.name = 'csrfmiddlewaretoken';
+    csrfToken.value = '{{ csrf_token }}';
+    form.appendChild(csrfToken);
+    
+    // Add record ID and type
+    const idInput = document.createElement('input');
+    idInput.type = 'hidden';
+    idInput.name = 'record_id';
+    idInput.value = recordId;
+    form.appendChild(idInput);
+    
+    const typeInput = document.createElement('input');
+    typeInput.type = 'hidden';
+    typeInput.name = 'record_type';
+    typeInput.value = recordType;
+    form.appendChild(typeInput);
+    
+    // Submit the form
+    document.body.appendChild(form);
+    form.submit();
+    document.body.removeChild(form);
+}
 </script>
 
 <!-- Bootstrap JS -->

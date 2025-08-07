@@ -4,13 +4,18 @@ from .forms import StaffRecordForm, DepartmentForm, DeviceForm, BorrowForm, Retu
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Q
 import openpyxl
-from django.http import HttpResponse
+from django.http import HttpResponse, Http404
 from django.utils import timezone
 from django.contrib import messages
 from datetime import datetime
 from django.db import models
-from itertools import groupby
 from inventory.utils import log_action
+from django.http import HttpResponse
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+from io import BytesIO
+from django.conf import settings
+import os
 
 # Create your views here.
 def home_view(request):
@@ -271,6 +276,25 @@ def export_department_excel(request):
     wb.save(response)
     return response
 
+
+
+
+
+
+
+
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.db.models import Q
+from django.contrib import messages
+from datetime import datetime
+from .models import Device, DEVICE_STATUS_CHOICES
+from .forms import DeviceForm
+import openpyxl
+from django.http import HttpResponse
+
 @login_required
 def device_list(request):
     query = request.GET.get("q", "")
@@ -296,66 +320,35 @@ def device_list(request):
         devices = devices.filter(name__iexact=name_filter)
     
     if start_date and end_date:
-        devices = devices.filter(created_at__date__range=[start_date, end_date])
+        try:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            devices = devices.filter(created_at__date__range=[start_date, end_date])
+        except ValueError:
+            messages.error(request, "Invalid date format. Please use YYYY-MM-DD.")
     elif start_date:
-        devices = devices.filter(created_at__date__gte=start_date)
+        try:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            devices = devices.filter(created_at__date__gte=start_date)
+        except ValueError:
+            messages.error(request, "Invalid date format. Please use YYYY-MM-DD.")
     elif end_date:
-        devices = devices.filter(created_at__date__lte=end_date)
+        try:
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            devices = devices.filter(created_at__date__lte=end_date)
+        except ValueError:
+            messages.error(request, "Invalid date format. Please use YYYY-MM-DD.")
 
     unique_names = Device.objects.values_list('name', flat=True).distinct()
     form = DeviceForm()
 
     if request.method == 'POST' and request.POST.get("id"):
         device = get_object_or_404(Device, pk=request.POST["id"])
-        form = DeviceForm(request.POST, instance=device)
+        form = DeviceForm(request.POST, request.FILES, instance=device)
         if form.is_valid():
             device = form.save(commit=False)
             device.name = device.name.upper()
-            device.save()
-            log_action(
-                request,
-                'update',
-                'Device',
-                device.id,
-                f"Updated device {device.name} (SN: {device.serial_number})"
-            )
-            return redirect('devices')
-
-    return render(request, 'devices.html', {
-        'devices': devices,
-        'form': form,
-        'query': query,
-        'unique_names': unique_names,
-    })
-
-@login_required
-@user_passes_test(lambda u: u.is_superuser)
-def add_device(request):
-    if request.method == 'POST':
-        form = DeviceForm(request.POST)
-        if form.is_valid():
-            device = form.save(commit=False)
-            device.name = device.name.upper()
-            device.save()
-            log_action(
-                request,
-                'create',
-                'Device',
-                device.id,
-                f"Added new device {device.name} (SN: {device.serial_number})"
-            )
-            messages.success(request, "Device added successfully.")
-    return redirect('devices')
-
-@login_required
-@user_passes_test(lambda u: u.is_superuser)
-def update_device(request, pk):
-    device = get_object_or_404(Device, pk=pk)
-    if request.method == 'POST':
-        form = DeviceForm(request.POST, instance=device)
-        if form.is_valid():
-            device = form.save(commit=False)
-            device.name = device.name.upper()
+            device.status = request.POST.get('status', 'available')
             device.save()
             log_action(
                 request,
@@ -365,6 +358,68 @@ def update_device(request, pk):
                 f"Updated device {device.name} (SN: {device.serial_number})"
             )
             messages.success(request, "Device updated successfully.")
+            return redirect('devices')
+        else:
+            messages.error(request, "Error updating device. Please check the form.")
+
+    return render(request, 'devices.html', {
+        'devices': devices,
+        'form': form,
+        'DEVICE_STATUS_CHOICES': DEVICE_STATUS_CHOICES,
+        'query': query,
+        'unique_names': unique_names,
+        'status_filter': status_filter,
+        'name_filter': name_filter,
+        'start_date': start_date,
+        'end_date': end_date,
+    })
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def add_device(request):
+    if request.method == 'POST':
+        form = DeviceForm(request.POST, request.FILES)
+        if form.is_valid():
+            device = form.save(commit=False)
+            device.name = device.name.upper()
+            device.status = 'available'
+            try:
+                device.save()
+                messages.success(request, "Device added successfully.")
+                return redirect('devices')
+            except Exception as e:
+                messages.error(request, f"Error saving device: {str(e)}")
+        else:
+            error_messages = []
+            for field, errors in form.errors.items():
+                for error in errors:
+                    error_messages.append(f"{field}: {error}")
+            messages.error(request, " ".join(error_messages))
+    return redirect('devices')
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def update_device(request, pk):
+    device = get_object_or_404(Device, pk=pk)
+    if request.method == 'POST':
+        form = DeviceForm(request.POST, request.FILES, instance=device)
+        status = request.POST.get('status', 'available')
+        if form.is_valid():
+            device = form.save(commit=False)
+            device.name = device.name.upper()
+            device.status = status
+            device.save()
+            log_action(
+                request,
+                'update',
+                'Device',
+                device.id,
+                f"Updated device {device.name} (SN: {device.serial_number})"
+            )
+            messages.success(request, "Device updated successfully.")
+            return redirect('devices')
+        else:
+            messages.error(request, "Error updating device. Please check the form.")
     return redirect('devices')
 
 @login_required
@@ -381,6 +436,11 @@ def delete_device(request, pk):
     device.delete()
     messages.success(request, "Device deleted successfully.")
     return redirect('devices')
+
+@login_required
+def view_device(request, pk):
+    device = get_object_or_404(Device, pk=pk)
+    return render(request, 'device_detail.html', {'device': device})
 
 @login_required
 def export_device_excel(request):
@@ -415,7 +475,13 @@ def export_device_excel(request):
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Devices"
-    ws.append(["Name", "Model/Brand", "Serial Number", "Status", "Created At"])
+    
+    headers = ["Name", "Model/Brand", "Serial Number", "Status", "Created Date"]
+    ws.append(headers)
+    
+    column_widths = [20, 20, 20, 15, 20]
+    for i, width in enumerate(column_widths, 1):
+        ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = width
 
     for device in devices:
         ws.append([
@@ -427,16 +493,28 @@ def export_device_excel(request):
         ])
 
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-    response['Content-Disposition'] = 'attachment; filename=devices.xlsx'
+    response['Content-Disposition'] = 'attachment; filename=devices_export_{}.xlsx'.format(
+        datetime.now().strftime("%Y%m%d_%H%M%S")
+    )
     wb.save(response)
     return response
+
+
+
+
+
+
+
+
+
+
 
 @login_required
 def inventory_view(request):
     active_staff = StaffRecord.objects.filter(status='active')
     all_staff = StaffRecord.objects.all()
     borrowed_devices = BorrowRecord.objects.filter(date_returned__isnull=True).values_list('device_id', flat=True)
-    available_devices = Device.objects.filter(status='available').exclude(id__in=borrowed_devices)
+    available_devices = Device.objects.filter(status='available').exclude(id__in=borrowed_devices).exclude(status='condemned')
 
     filter_date = request.GET.get('date')
     staff_filter = request.GET.get('staff_name')
@@ -657,6 +735,66 @@ def export_inventory_excel(request):
     return response
 
 
+
+
+@login_required
+def download_inventory_pdf(request):
+    record_id = request.POST.get('record_id')
+    record_type = request.POST.get('record_type')
+    
+    try:
+        record = BorrowRecord.objects.get(pk=record_id)
+        
+        if record_type == 'borrowed' and record.date_returned is not None:
+            raise Http404("This is not a currently borrowed record")
+            
+        # Determine which template to use
+        if record.date_returned is None:
+            template = 'inventory-pdf/borrowed_pdf.html'
+        else:
+            template = 'inventory-pdf/returned_pdf.html'
+        
+        context = {
+            'record': record,
+            'now': timezone.now(),
+            'MEDIA_URL': settings.MEDIA_URL,
+            'STATIC_URL': settings.STATIC_URL,
+        }
+        
+        # Render template
+        template = get_template(template)
+        html = template.render(context)
+        
+        # Create PDF
+        result = BytesIO()
+        
+        def fetch_resources(uri, rel):
+            if uri.startswith(settings.MEDIA_URL):
+                path = os.path.join(settings.MEDIA_ROOT, uri.replace(settings.MEDIA_URL, ''))
+            elif uri.startswith(settings.STATIC_URL):
+                path = os.path.join(settings.STATIC_ROOT, uri.replace(settings.STATIC_URL, ''))
+            else:
+                path = None
+            return path
+        
+        pdf = pisa.pisaDocument(
+            BytesIO(html.encode("UTF-8")), 
+            result,
+            encoding='UTF-8',
+            link_callback=fetch_resources
+        )
+        
+        if not pdf.err:
+            response = HttpResponse(result.getvalue(), content_type='application/pdf')
+            status = "borrowed" if record.date_returned is None else "returned"
+            filename = f"{status}_record_{record_id}.pdf"
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+        
+    except BorrowRecord.DoesNotExist:
+        raise Http404("Record not found")
+    
+    return HttpResponse("Error generating PDF", status=400)
 
 
 

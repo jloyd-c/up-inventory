@@ -25,12 +25,15 @@ class StaffRecord(models.Model):
         return f"{self.full_name} ({self.email})"
 
 
+
+
 DEVICE_STATUS_CHOICES = [
     ('available', 'Available'),
-    ('borrowed', 'Borrowed'),
+    ('issued', 'Issued'),
     ('maintenance', 'Maintenance'),
     ('lost', 'Lost'),
     ('damaged', 'Damaged'),
+    ('condemned', 'Condemned'),
 ]
 
 class Device(models.Model):
@@ -38,10 +41,15 @@ class Device(models.Model):
     model_brand = models.CharField(max_length=100)
     serial_number = models.CharField(max_length=100, unique=True)
     status = models.CharField(max_length=20, choices=DEVICE_STATUS_CHOICES, default='available')
+    image = models.ImageField(upload_to='device_images/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"{self.name} ({self.serial_number})"
+    
+    def get_status_display(self):
+        """Get human-readable status"""
+        return dict(DEVICE_STATUS_CHOICES).get(self.status, self.status)
 
 
 

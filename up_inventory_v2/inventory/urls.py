@@ -38,9 +38,13 @@ urlpatterns = [
     path('inventory/export_excel/', views.export_inventory_excel, name='export_inventory_excel'),
     path('return/edit/<int:pk>/', views.return_edit_view, name='return_edit'),
     path('return/delete/<int:pk>/', views.return_delete_view, name='return_delete'),
+    path('download-inventory-pdf/', views.download_inventory_pdf, name='download_inventory_pdf'),
 
 
 
 
     path('history/', views.history_log, name='history_log'),
+
+    # In your urls.py
+    path('devices/<int:pk>/view/', views.view_device, name='view_device'),
 ]

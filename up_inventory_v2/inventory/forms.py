@@ -14,10 +14,37 @@ class DepartmentForm(forms.ModelForm):
             'name': forms.TextInput(attrs={'placeholder': 'Department Name'})
         }
 
+
+
 class DeviceForm(forms.ModelForm):
     class Meta:
         model = Device
-        fields = ['name', 'model_brand', 'serial_number', 'status']
+        fields = ['name', 'model_brand', 'serial_number', 'image']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control'}),
+            'model_brand': forms.TextInput(attrs={'class': 'form-control'}),
+            'serial_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'status': forms.Select(attrs={'class': 'form-control'}),
+            'image': forms.FileInput(attrs={'class': 'form-control'}),
+        }
+
+    def clean_serial_number(self):
+        serial_number = self.cleaned_data['serial_number']
+        if self.instance.pk:  # If editing existing device
+            if Device.objects.filter(serial_number=serial_number).exclude(pk=self.instance.pk).exists():
+                raise forms.ValidationError("This serial number already exists.")
+        else:  # If creating new device
+            if Device.objects.filter(serial_number=serial_number).exists():
+                raise forms.ValidationError("This serial number already exists.")
+        return serial_number
+
+    def clean_image(self):
+        image = self.cleaned_data.get('image', False)
+        if image:
+            if image.size > 2*1024*1024:  # 2MB limit
+                raise forms.ValidationError("Image file too large ( > 2MB )")
+            return image
+        return None
 
 
 
@@ -25,8 +52,7 @@ class DeviceForm(forms.ModelForm):
 
 
 
-from django import forms
-from .models import BorrowRecord
+
 
 class ReturnForm(forms.Form):
     borrow_record = forms.ModelChoiceField(
@@ -39,6 +65,7 @@ class ReturnForm(forms.Form):
         ('damaged', 'Damaged'),
         ('maintenance', 'Maintenance'),
         ('lost', 'Lost'),
+        ('condemned', 'Condemned'),
     ])
 
 class BorrowForm(forms.ModelForm):
@@ -69,6 +96,7 @@ class ReturnEditForm(forms.ModelForm):
         ('damaged', 'Damaged'),
         ('maintenance', 'Maintenance'),
         ('lost', 'Lost'),
+        ('condemned', 'Condemned'),
     ])
 
     class Meta:
