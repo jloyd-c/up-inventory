@@ -7,6 +7,9 @@ from .models import CustomUser
 from inventory.models import StaffRecord
 from inventory.utils import log_action
 from django.utils import timezone
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from datetime import datetime
+from django.db import models
 
 def login_view(request):
     if request.method == 'POST':
@@ -29,6 +32,41 @@ def login_view(request):
 
 @login_required
 def create_user_view(request):
+    query = request.GET.get("q", "")
+    start_date = request.GET.get("start_date", "")
+    end_date = request.GET.get("end_date", "")
+    page = request.GET.get('page', 1)
+
+    users = CustomUser.objects.all().order_by('-id')
+
+    # Apply search filter
+    if query:
+        users = users.filter(
+            models.Q(email__icontains=query) | 
+            models.Q(full_name__icontains=query)
+        )
+    
+    # Apply date filters
+    if start_date and end_date:
+        try:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            users = users.filter(date_joined__date__range=[start_date, end_date])
+        except ValueError:
+            messages.error(request, "Invalid date format. Please use YYYY-MM-DD.")
+    elif start_date:
+        try:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            users = users.filter(date_joined__date__gte=start_date)
+        except ValueError:
+            messages.error(request, "Invalid date format. Please use YYYY-MM-DD.")
+    elif end_date:
+        try:
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            users = users.filter(date_joined__date__lte=end_date)
+        except ValueError:
+            messages.error(request, "Invalid date format. Please use YYYY-MM-DD.")
+
     # Create user
     if request.method == 'POST' and 'create_user' in request.POST:
         form = CreateUserForm(request.POST)
@@ -65,7 +103,7 @@ def create_user_view(request):
                     f"Created user account for {email} with staff {staff.full_name if staff else 'N/A'}"
                 )
                 messages.success(request, "User created successfully.")
-                return redirect('create_user')
+                return redirect(f"{request.path}?{request.GET.urlencode()}")
         else:
             # Log failed user creation attempt
             log_action(
@@ -102,7 +140,7 @@ def create_user_view(request):
                 log_details
             )
             messages.success(request, "User updated successfully.")
-            return redirect('create_user')
+            return redirect(f"{request.path}?{request.GET.urlencode()}")
         else:
             # Log failed user update attempt
             log_action(
@@ -141,14 +179,28 @@ def create_user_view(request):
                 f"Attempted to delete non-existent user with ID {user_id}"
             )
             messages.error(request, "User not found.")
-        return redirect('create_user')
+        return redirect(f"{request.path}?{request.GET.urlencode()}")
 
     else:
         form = CreateUserForm()
         form.fields['staff'].queryset = StaffRecord.objects.filter(user_account_created=False)
 
-    users = CustomUser.objects.all()
-    return render(request, 'signup.html', {'form': form, 'users': users})
+    # Add pagination
+    paginator = Paginator(users, 15)  # Show 15 users per page
+    try:
+        users = paginator.page(page)
+    except PageNotAnInteger:
+        users = paginator.page(1)
+    except EmptyPage:
+        users = paginator.page(paginator.num_pages)
+
+    return render(request, 'signup.html', {
+        'form': form,
+        'users': users,
+        'query': query,
+        'start_date': start_date,
+        'end_date': end_date,
+    })
 
 def logout_view(request):
     if request.user.is_authenticated:

@@ -139,6 +139,10 @@
                 <td>{{ record.device.serial_number }}</td>
             </tr>
             <tr>
+                <th>Location:</th>
+                <td>{% if record.device.location %}{{ record.device.location.name }}{% else %}N/A{% endif %}</td>
+            </tr>
+            <tr>
                 <th>Status:</th>
                 <td class="status-distributed">Distributed</td>
             </tr>

@@ -1,5 +1,6 @@
+import os
 from django import forms
-from .models import StaffRecord, Department, Device, BorrowRecord
+from .models import StaffRecord, Department, Device, BorrowRecord, Location
 
 class StaffRecordForm(forms.ModelForm):
     class Meta:
@@ -16,14 +17,16 @@ class DepartmentForm(forms.ModelForm):
 
 
 
+
 class DeviceForm(forms.ModelForm):
     class Meta:
         model = Device
-        fields = ['name', 'model_brand', 'serial_number', 'image']
+        fields = ['name', 'model_brand', 'serial_number', 'location', 'image']
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'model_brand': forms.TextInput(attrs={'class': 'form-control'}),
             'serial_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'location': forms.Select(attrs={'class': 'form-control'}),
             'status': forms.Select(attrs={'class': 'form-control'}),
             'image': forms.FileInput(attrs={'class': 'form-control'}),
         }
@@ -45,7 +48,6 @@ class DeviceForm(forms.ModelForm):
                 raise forms.ValidationError("Image file too large ( > 2MB )")
             return image
         return None
-
 
 
 
@@ -122,3 +124,14 @@ class ReturnEditForm(forms.ModelForm):
         if commit:
             borrow_record.save()
         return borrow_record
+
+
+
+
+class LocationForm(forms.ModelForm):
+    class Meta:
+        model = Location
+        fields = ['name']
+        widgets = {
+            'name': forms.TextInput(attrs={'placeholder': 'Location Name'})
+        }

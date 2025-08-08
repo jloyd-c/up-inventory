@@ -7,6 +7,13 @@ class Department(models.Model):
     def __str__(self):
         return self.name
 
+class Location(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
 STATUS_CHOICES = [
     ('active', 'Active'),
     ('terminated', 'Terminated'),
@@ -24,9 +31,6 @@ class StaffRecord(models.Model):
     def __str__(self):
         return f"{self.full_name} ({self.email})"
 
-
-
-
 DEVICE_STATUS_CHOICES = [
     ('available', 'Available'),
     ('issued', 'Issued'),
@@ -41,6 +45,7 @@ class Device(models.Model):
     model_brand = models.CharField(max_length=100)
     serial_number = models.CharField(max_length=100, unique=True)
     status = models.CharField(max_length=20, choices=DEVICE_STATUS_CHOICES, default='available')
+    location = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True, blank=True)
     image = models.ImageField(upload_to='device_images/', null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -50,8 +55,6 @@ class Device(models.Model):
     def get_status_display(self):
         """Get human-readable status"""
         return dict(DEVICE_STATUS_CHOICES).get(self.status, self.status)
-
-
 
 class BorrowRecord(models.Model):
     staff = models.ForeignKey(StaffRecord, on_delete=models.CASCADE)
@@ -67,15 +70,6 @@ class BorrowRecord(models.Model):
     def save(self, *args, **kwargs):
         super().save(*args, **kwargs)
 
-
-
-
-
-
-
-
-
-# Add to inventory/models.py
 class HistoryLog(models.Model):
     ACTION_CHOICES = [
         ('create', 'Create'),

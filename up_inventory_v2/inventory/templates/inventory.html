@@ -117,7 +117,7 @@
     <div class="accordion-item mb-3">
       <h2 class="accordion-header" id="headingBorrowed">
         <button class="accordion-button bg-danger text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBorrowed" aria-expanded="true" aria-controls="collapseBorrowed">
-          <i class="fas fa-laptop me-2"></i>Distributed Asset ({{ borrowed_records|length }})
+          <i class="fas fa-laptop me-2"></i>Distributed Asset ({{ borrowed_records.paginator.count }})
         </button>
       </h2>
       <div id="collapseBorrowed" class="accordion-collapse collapse show" aria-labelledby="headingBorrowed">
@@ -129,6 +129,7 @@
                   <th>Image</th>
                   <th>Staff Name</th>
                   <th>Department</th>
+                  <th>Location</th>
                   <th>Asset</th>
                   <th>Model/Brand</th>
                   <th>Date Issued</th>
@@ -153,6 +154,7 @@
                   </td>
                   <td>{{ record.staff.full_name }}</td>
                   <td>{{ record.staff.department.name }}</td>
+                  <td>{% if record.device.location %}{{ record.device.location.name }}{% else %}N/A{% endif %}</td>
                   <td>{{ record.device.name }}</td>
                   <td>{{ record.device.model_brand }}</td>
                   <td>{{ record.date_issued|date:"Y-m-d H:i" }}</td>
@@ -169,6 +171,7 @@
                         data-date-issued="{{ record.date_issued|date:'F j, Y H:i' }}"
                         data-staff-name="{{ record.staff.full_name }}"
                         data-department="{{ record.staff.department.name }}"
+                        data-location="{% if record.device.location %}{{ record.device.location.name }}{% endif %}"
                         data-pr-number="{{ record.pr_number }}"
                         data-remarks="{{ record.remarks }}"
                         data-image-url="{% if record.device.image %}{{ record.device.image.url }}{% endif %}">
@@ -177,18 +180,55 @@
                       <button class="btn btn-danger btn-sm action-btn" onclick="downloadPDF('{{ record.id }}', 'borrowed')">
                         <i class="fas fa-file-pdf me-1"></i> PDF
                       </button>
-                      <!--<button class="btn btn-primary btn-sm action-btn" onclick="openEditBorrowModal('{{ record.id }}')">
-                        <i class="fas fa-edit me-1"></i> Edit
-                      </button>-->
                     </div>
                   </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="10">No borrowed devices.</td></tr>
+                <tr><td colspan="11">No borrowed devices.</td></tr>
                 {% endfor %}
               </tbody>
             </table>
           </div>
+          <!-- Pagination for Borrowed Records -->
+          {% if borrowed_records.paginator.num_pages > 1 %}
+          <nav aria-label="Borrowed records pagination">
+            <ul class="pagination justify-content-center mt-3">
+              {% if borrowed_records.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.staff_name %}&staff_name={{ request.GET.staff_name }}{% endif %}{% if request.GET.date %}&date={{ request.GET.date }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="First">
+                  <span aria-hidden="true">&laquo;&laquo;</span>
+                </a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?page={{ borrowed_records.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.staff_name %}&staff_name={{ request.GET.staff_name }}{% endif %}{% if request.GET.date %}&date={{ request.GET.date }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Previous">
+                  <span aria-hidden="true">&laquo;</span>
+                </a>
+              </li>
+              {% endif %}
+
+              {% for num in borrowed_records.paginator.page_range %}
+                {% if borrowed_records.number == num %}
+                <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                {% elif num > borrowed_records.number|add:'-3' and num < borrowed_records.number|add:'3' %}
+                <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.staff_name %}&staff_name={{ request.GET.staff_name }}{% endif %}{% if request.GET.date %}&date={{ request.GET.date }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{{ num }}</a></li>
+                {% endif %}
+              {% endfor %}
+
+              {% if borrowed_records.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ borrowed_records.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.staff_name %}&staff_name={{ request.GET.staff_name }}{% endif %}{% if request.GET.date %}&date={{ request.GET.date }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Next">
+                  <span aria-hidden="true">&raquo;</span>
+                </a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?page={{ borrowed_records.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.staff_name %}&staff_name={{ request.GET.staff_name }}{% endif %}{% if request.GET.date %}&date={{ request.GET.date }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Last">
+                  <span aria-hidden="true">&raquo;&raquo;</span>
+                </a>
+              </li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -197,7 +237,7 @@
     <div class="accordion-item">
       <h2 class="accordion-header" id="headingReturned">
         <button class="accordion-button collapsed bg-danger text-white" type="button" data-bs-toggle="collapse" data-bs-target="#collapseReturned" aria-expanded="false" aria-controls="collapseReturned">
-          <i class="fas fa-check-circle me-2"></i>Returned Asset ({{ returned_records|length }})
+          <i class="fas fa-check-circle me-2"></i>Returned Asset ({{ returned_records.paginator.count }})
         </button>
       </h2>
       <div id="collapseReturned" class="accordion-collapse collapse" aria-labelledby="headingReturned">
@@ -209,6 +249,7 @@
                   <th>Image</th>
                   <th>Staff Name</th>
                   <th>Department</th>
+                  <th>Location</th>
                   <th>Asset</th>
                   <th>Model/Brand</th>
                   <th>Date Issued</th>
@@ -234,6 +275,7 @@
                   </td>
                   <td>{{ record.staff.full_name }}</td>
                   <td>{{ record.staff.department.name }}</td>
+                  <td>{% if record.device.location %}{{ record.device.location.name }}{% else %}N/A{% endif %}</td>
                   <td>{{ record.device.name }}</td>
                   <td>{{ record.device.model_brand }}</td>
                   <td>{{ record.date_issued|date:"Y-m-d H:i" }}</td>
@@ -242,8 +284,8 @@
                   <td>{{ record.pr_number }}</td>
                   <td>{{ record.remarks }}</td>
                   <td class="action-cell">
-                    <div class="action-buttons">
-                      <button class="btn btn-info btn-sm action-btn" onclick="openViewModal(this)"
+                    <div class="d-flex justify-content-center gap-2">
+                      <button class="btn btn-sm btn-info p-2" title="View" onclick="openViewModal(this)"
                         data-name="{{ record.device.name }}"
                         data-model-brand="{{ record.device.model_brand }}"
                         data-serial-number="{{ record.device.serial_number }}"
@@ -252,29 +294,70 @@
                         data-date-returned="{{ record.date_returned|date:'F j, Y H:i' }}"
                         data-staff-name="{{ record.staff.full_name }}"
                         data-department="{{ record.staff.department.name }}"
+                        data-location="{% if record.device.location %}{{ record.device.location.name }}{% endif %}"
                         data-pr-number="{{ record.pr_number }}"
                         data-remarks="{{ record.remarks }}"
                         data-image-url="{% if record.device.image %}{{ record.device.image.url }}{% endif %}">
-                        <i class="fas fa-eye me-1"></i> View
+                        <i class="fas fa-eye"></i>
                       </button>
-                      <button class="btn btn-danger btn-sm action-btn" onclick="downloadPDF('{{ record.id }}', 'returned')">
-                        <i class="fas fa-file-pdf me-1"></i> PDF
+                      <button class="btn btn-sm btn-danger p-2" title="Download PDF" onclick="downloadPDF('{{ record.id }}', 'returned')">
+                        <i class="fas fa-file-pdf"></i>
                       </button>
-                      <button class="btn btn-primary btn-sm action-btn" onclick="openEditReturnModal('{{ record.id }}')">
-                        <i class="fas fa-edit me-1"></i> Edit
+                      <button class="btn btn-sm btn-primary p-2" title="Edit" onclick="openEditReturnModal('{{ record.id }}')">
+                        <i class="fas fa-edit"></i>
                       </button>
-                      <button class="btn btn-danger btn-sm action-btn" onclick="openDeleteReturnModal('{{ record.id }}')">
-                        <i class="fas fa-trash-alt me-1"></i> Delete
+                      <button class="btn btn-sm btn-danger p-2" title="Delete" onclick="openDeleteReturnModal('{{ record.id }}')">
+                        <i class="fas fa-trash-alt"></i>
                       </button>
                     </div>
                   </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="11">No returned devices.</td></tr>
+                <tr><td colspan="12">No returned devices.</td></tr>
                 {% endfor %}
               </tbody>
             </table>
           </div>
+          <!-- Pagination for Returned Records -->
+          {% if returned_records.paginator.num_pages > 1 %}
+          <nav aria-label="Returned records pagination">
+            <ul class="pagination justify-content-center mt-3">
+              {% if returned_records.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.staff_name %}&staff_name={{ request.GET.staff_name }}{% endif %}{% if request.GET.date %}&date={{ request.GET.date }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="First">
+                  <span aria-hidden="true">&laquo;&laquo;</span>
+                </a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?page={{ returned_records.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.staff_name %}&staff_name={{ request.GET.staff_name }}{% endif %}{% if request.GET.date %}&date={{ request.GET.date }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Previous">
+                  <span aria-hidden="true">&laquo;</span>
+                </a>
+              </li>
+              {% endif %}
+
+              {% for num in returned_records.paginator.page_range %}
+                {% if returned_records.number == num %}
+                <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                {% elif num > returned_records.number|add:'-3' and num < returned_records.number|add:'3' %}
+                <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.staff_name %}&staff_name={{ request.GET.staff_name }}{% endif %}{% if request.GET.date %}&date={{ request.GET.date }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{{ num }}</a></li>
+                {% endif %}
+              {% endfor %}
+
+              {% if returned_records.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ returned_records.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.staff_name %}&staff_name={{ request.GET.staff_name }}{% endif %}{% if request.GET.date %}&date={{ request.GET.date }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Next">
+                  <span aria-hidden="true">&raquo;</span>
+                </a>
+              </li>
+              <li class="page-item">
+                <a class="page-link" href="?page={{ returned_records.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.staff_name %}&staff_name={{ request.GET.staff_name }}{% endif %}{% if request.GET.date %}&date={{ request.GET.date }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Last">
+                  <span aria-hidden="true">&raquo;&raquo;</span>
+                </a>
+              </li>
+              {% endif %}
+            </ul>
+          </nav>
+          {% endif %}
         </div>
       </div>
     </div>
@@ -329,8 +412,12 @@
                 <select name="device" id="device_select" class="form-select" onchange="fillDeviceInfo()" required>
                   <option value="">Select device</option>
                   {% for device in available_devices %}
-                  <option value="{{ device.id }}" data-name="{{ device.name }}" data-model="{{ device.model_brand }}" data-serial="{{ device.serial_number }}">
-                    {{ device.name }} - {{ device.model_brand }} ({{ device.serial_number }})
+                  <option value="{{ device.id }}" 
+                      data-name="{{ device.name }}" 
+                      data-model="{{ device.model_brand }}" 
+                      data-serial="{{ device.serial_number }}"
+                      data-location="{% if device.location %}{{ device.location.name }}{% endif %}">
+                      {{ device.name }} - {{ device.model_brand }} ({{ device.serial_number }}) - {% if device.location %}{{ device.location.name }}{% else %}No location{% endif %}
                   </option>
                   {% endfor %}
                 </select>
@@ -350,6 +437,11 @@
               <div class="mb-3">
                 <label class="form-label">Serial Number</label>
                 <input type="text" id="device_serial" class="form-control" readonly>
+              </div>
+
+              <div class="mb-3">
+                <label class="form-label">Location</label>
+                <input type="text" id="device_location" class="form-control" readonly>
               </div>
             </div>
           </div>
@@ -421,6 +513,10 @@
             <tr>
               <th>Department:</th>
               <td id="view-department"></td>
+            </tr>
+            <tr>
+              <th>Location:</th>
+              <td id="view-location"></td>
             </tr>
             <tr>
               <th>Date Issued:</th>
@@ -538,6 +634,10 @@
                 <input type="text" name="serial_number" id="edit-borrow-serial-number" class="form-control" readonly>
               </div>
               <div class="mb-3">
+                <label>Location</label>
+                <input type="text" name="location" id="edit-borrow-location" class="form-control" readonly>
+              </div>
+              <div class="mb-3">
                 <label>PR Number</label>
                 <input type="text" name="pr_number" id="edit-borrow-pr-number" class="form-control" required>
               </div>
@@ -556,8 +656,6 @@
     </div>
   </div>
 </div>
-
-
 
 <!-- Edit Return Modal (Redesigned with 2-Column Grid) -->
 <div class="modal" id="editReturnModal" tabindex="-1" style="display:none;">
@@ -603,6 +701,10 @@
               <div class="mb-3">
                 <label>Serial Number</label>
                 <input type="text" name="serial_number" id="edit-return-serial-number" class="form-control" readonly>
+              </div>
+              <div class="mb-3">
+                <label>Location</label>
+                <input type="text" name="location" id="edit-return-location" class="form-control" readonly>
               </div>
               <div class="mb-3">
                 <label>PR Number</label>
@@ -696,9 +798,12 @@ function fillDeviceInfo() {
   const name = select.options[select.selectedIndex]?.getAttribute("data-name") || "";
   const model = select.options[select.selectedIndex]?.getAttribute("data-model") || "";
   const serial = select.options[select.selectedIndex]?.getAttribute("data-serial") || "";
+  const location = select.options[select.selectedIndex]?.getAttribute("data-location") || "";
+  
   document.getElementById("device_name").value = name;
   document.getElementById("device_model").value = model;
   document.getElementById("device_serial").value = serial;
+  document.getElementById("device_location").value = location;
 }
 
 // Record management functions
@@ -751,6 +856,7 @@ function openViewModal(btn) {
   document.getElementById("view-status").textContent = btn.dataset.status;
   document.getElementById("view-staff-name").textContent = btn.dataset.staffName;
   document.getElementById("view-department").textContent = btn.dataset.department;
+  document.getElementById("view-location").textContent = btn.dataset.location || "N/A";
   document.getElementById("view-date-issued").textContent = btn.dataset.dateIssued;
   document.getElementById("view-pr-number").textContent = btn.dataset.prNumber;
   document.getElementById("view-remarks").textContent = btn.dataset.remarks;

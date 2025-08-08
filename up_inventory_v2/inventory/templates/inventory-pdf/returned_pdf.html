@@ -1,186 +1,211 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Returned Asset Record</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ record.device.name }} - Returned Asset</title>
     <style>
         @page {
             size: A4;
-            margin: 1cm;
+            margin: 1.2cm;
         }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: #333;
-            line-height: 1.5;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            color: #1f2a44;
+            line-height: 1.35;
+            margin: 0;
+            padding: 0;
+            font-size: 13px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 15px;
         }
         .header {
             text-align: center;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #dc3545;
+            margin-bottom: 12px;
         }
         .title {
-            font-size: 24px;
-            font-weight: bold;
+            font-size: 22px;
+            font-weight: 700;
             color: #dc3545;
-            margin-bottom: 5px;
-        }
-        .title i {
-            margin-right: 10px;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
         }
         .subtitle {
-            font-size: 16px;
-            color: #6c757d;
+            font-size: 13px;
+            color: #6b7280;
+            margin-top: 4px;
         }
         .section-header {
             background-color: #dc3545;
-            color: white;
-            padding: 8px 12px;
-            font-weight: bold;
-            margin: 20px 0 10px 0;
+            color: #ffffff;
+            padding: 6px 10px;
+            font-size: 13px;
+            font-weight: 600;
+            margin: 15px 0 8px;
             border-radius: 4px;
-        }
-        .section-header i {
-            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         .info-table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
         .info-table th {
             background-color: #f8f9fa;
             text-align: left;
-            padding: 10px;
+            padding: 6px 8px;
             width: 30%;
-            border: 1px solid #dee2e6;
+            border: 1px solid #e5e7eb;
             font-weight: 600;
         }
         .info-table td {
-            padding: 10px;
-            border: 1px solid #dee2e6;
+            padding: 6px 8px;
+            border: 1px solid #e5e7eb;
             width: 70%;
         }
         .image-container {
             text-align: center;
-            margin: 20px 0;
-            border: 1px solid #dee2e6;
-            padding: 15px;
-            border-radius: 4px;
+            margin: 12px 0;
+            padding: 10px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
         }
         .asset-image {
-            max-height: 250px;
+            max-height: 150px;
             max-width: 100%;
-        }
-        .no-image {
-            background-color: #f8f9fa;
-            padding: 30px;
-            text-align: center;
-            color: #6c757d;
             border-radius: 4px;
         }
+        .no-image {
+            padding: 20px;
+            text-align: center;
+            color: #6b7280;
+            font-size: 13px;
+        }
         .no-image i {
-            font-size: 48px;
-            margin-bottom: 10px;
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: #9ca3af;
         }
         .footer {
-            margin-top: 30px;
+            margin-top: 15px;
             text-align: right;
-            font-size: 12px;
-            color: #6c757d;
-            border-top: 1px solid #dee2e6;
-            padding-top: 10px;
+            font-size: 11px;
+            color: #6b7280;
         }
-        .status-available { color: #28a745; }
-        .status-damaged { color: #dc3545; }
-        .status-maintenance { color: #ffc107; }
-        .status-lost { color: #6c757d; }
-        .status-condemned { color: #343a40; }
+        .status-available { color: #28a745; font-weight: 500; }
+        .status-damaged { color: #dc3545; font-weight: 500; }
+        .status-maintenance { color: #ffc107; font-weight: 500; }
+        .status-lost { color: #6b7280; font-weight: 500; }
+        .status-condemned { color: #1f2a44; font-weight: 500; }
+        
+        @media print {
+            body {
+                font-size: 12px;
+            }
+            .container {
+                padding: 0;
+            }
+            .title {
+                font-size: 20px;
+            }
+        }
     </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-    <div class="header">
-        <div class="title">
-            <i class="fas fa-check-circle"></i> Returned Asset Record
-        </div>
-        <div class="subtitle">
-            Returned on {{ record.date_returned|date:"F j, Y H:i" }}
-        </div>
-    </div>
-
-    <div class="section-header">
-        <i class="fas fa-box"></i> Asset Information
-    </div>
-    
-    <table class="info-table">
-        <tr>
-            <th>Asset Name:</th>
-            <td>{{ record.device.name }}</td>
-        </tr>
-        <tr>
-            <th>Model/Brand:</th>
-            <td>{{ record.device.model_brand }}</td>
-        </tr>
-        <tr>
-            <th>Serial Number:</th>
-            <td>{{ record.device.serial_number }}</td>
-        </tr>
-        <tr>
-            <th>PR Number:</th>
-            <td>{{ record.pr_number }}</td>
-        </tr>
-        <tr>
-            <th>Remarks:</th>
-            <td>{{ record.remarks }}</td>
-        </tr>
-        <tr>
-            <th>Device Condition:</th>
-            <td class="status-{{ record.device_status }}">
-                {{ record.get_device_status_display }}
-            </td>
-        </tr>
-    </table>
-
-    <div class="section-header">
-        <i class="fas fa-user"></i> Staff Information
-    </div>
-    
-    <table class="info-table">
-        <tr>
-            <th>Staff Name:</th>
-            <td>{{ record.staff.full_name }}</td>
-        </tr>
-        <tr>
-            <th>Department:</th>
-            <td>{{ record.staff.department.name }}</td>
-        </tr>
-        <tr>
-            <th>Date Issued:</th>
-            <td>{{ record.date_issued|date:"F j, Y H:i" }}</td>
-        </tr>
-        <tr>
-            <th>Date Returned:</th>
-            <td>{{ record.date_returned|date:"F j, Y H:i" }}</td>
-        </tr>
-    </table>
-
-    <div class="section-header">
-        <i class="fas fa-image"></i> Asset Image
-    </div>
-    
-    <div class="image-container">
-        {% if record.device.image %}
-            <img src="{{ record.device.image.path }}" class="asset-image" alt="Asset Image">
-        {% else %}
-            <div class="no-image">
-                <i class="fas fa-image"></i>
-                <p>No image available</p>
+    <div class="container">
+        <div class="header">
+            <div class="title">
+                <i class="fas fa-check-circle"></i> Returned Asset Record
             </div>
-        {% endif %}
-    </div>
+        </div>
 
-    <div class="footer">
-        Generated on {{ now|date:"F j, Y H:i" }} | UP Asset Inventory 
+        <div class="section-header">
+            <i class="fas fa-box"></i> Asset Information
+        </div>
+        
+        <table class="info-table">
+            <tr>
+                <th>Asset Name:</th>
+                <td>{{ record.device.name }}</td>
+            </tr>
+            <tr>
+                <th>Model/Brand:</th>
+                <td>{{ record.device.model_brand }}</td>
+            </tr>
+            <tr>
+                <th>Serial Number:</th>
+                <td>{{ record.device.serial_number }}</td>
+            </tr>
+            <tr>
+                <th>Location:</th>
+                <td>{% if record.device.location %}{{ record.device.location.name }}{% else %}N/A{% endif %}</td>
+            </tr>
+            <tr>
+                <th>PR Number:</th>
+                <td>{{ record.pr_number }}</td>
+            </tr>
+            <tr>
+                <th>Remarks:</th>
+                <td>{{ record.remarks }}</td>
+            </tr>
+            <tr>
+                <th>Device Condition:</th>
+                <td class="status-{{ record.device_status }}">
+                    {{ record.get_device_status_display }}
+                </td>
+            </tr>
+        </table>
+
+        <div class="section-header">
+            <i class="fas fa-user"></i> Staff Information
+        </div>
+        
+        <table class="info-table">
+            <tr>
+                <th>Staff Name:</th>
+                <td>{{ record.staff.full_name }}</td>
+            </tr>
+            <tr>
+                <th>Department:</th>
+                <td>{{ record.staff.department.name }}</td>
+            </tr>
+            <tr>
+                <th>Date Issued:</th>
+                <td>{{ record.date_issued|date:"F j, Y H:i" }}</td>
+            </tr>
+            <tr>
+                <th>Date Returned:</th>
+                <td>{{ record.date_returned|date:"F j, Y H:i" }}</td>
+            </tr>
+        </table>
+
+        <div class="section-header">
+            <i class="fas fa-image"></i> Asset Image
+        </div>
+        
+        <div class="image-container">
+            {% if record.device.image %}
+                <img src="{{ record.device.image.path }}" class="asset-image" alt="Asset Image">
+            {% else %}
+                <div class="no-image">
+                    <i class="fas fa-image"></i>
+                    <p>No image available</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            UP Asset Inventory
+        </div>
     </div>
 </body>
 </html>

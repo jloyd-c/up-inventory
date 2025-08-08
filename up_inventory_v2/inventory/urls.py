@@ -21,6 +21,7 @@ urlpatterns = [
     path('departments/add/', views.add_department, name='add_department'),
     path('departments/delete/<int:pk>/', views.delete_department, name='delete_department'),
     path('departments/export/', views.export_department_excel, name='export_department_excel'),
+    path('update/<int:pk>/', views.department_list, name='update_department'),
 
 
 
@@ -42,6 +43,14 @@ urlpatterns = [
 
 
 
+
+    path('locations/', views.location_list, name='location'),
+    path('locations/add/', views.add_location, name='add_location'),
+    path('locations/delete/<int:pk>/', views.delete_location, name='delete_location'),
+    path('locations/export/', views.export_location_excel, name='export_location_excel'),
+
+
+    
 
     path('history/', views.history_log, name='history_log'),
 

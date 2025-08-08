@@ -5,7 +5,22 @@
 <!-- Font Awesome and Bootstrap CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="{% static 'css/staff.css' %}">
+<link rel="stylesheet" href="{% static 'css/devices.css' %}">
+
+<!-- Hidden div for server-side errors -->
+<div id="serverErrors" style="display:none;">
+  {% if form.errors %}
+    <div class="alert alert-danger">
+      <ul class="mb-0">
+        {% for field, errors in form.errors.items %}
+          {% for error in errors %}
+            <li><strong>{{ field|capfirst }}:</strong> {{ error }}</li>
+          {% endfor %}
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+</div>
 
 <div class="staff-page container mt-4">
   <!-- Top Bar -->
@@ -15,256 +30,412 @@
       <button class="btn btn-primary" onclick="openAddModal()">
         <i class="fas fa-user-plus me-1"></i>Add User
       </button>
-      <a href="#" class="btn-download">
+      <a href="#" class="btn btn-success">
         <i class="fas fa-file-excel me-1"></i>Download Excel
       </a>
     </div>
   </div>
 
-  <!-- Users Table Card -->
-  <div class="card shadow rounded-4">
-    <div class="card-body">
-      <div class="table-responsive">
-        <table class="table table-hover table-striped align-middle text-center" id="usersTable">
-          <thead class="table-light">
-            <tr>
-              <th>Full Name</th>
-              <th>Email</th>
-              <th>Is Active</th>
-              <th>Is Superuser</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for user in users %}
-            <tr data-user-id="{{ user.id }}" data-user-email="{{ user.email }}" data-user-fullname="{{ user.full_name }}">
-              <td>{{ user.full_name }}</td>
-              <td>{{ user.email }}</td>
-              <td>{{ user.is_active|yesno:"Yes,No" }}</td>
-              <td>{{ user.is_superuser|yesno:"Yes,No" }}</td>
-              <td class="action-style text-center">
-                <button class="btn btn-action btn-edit edit-btn" type="button">
-                  <i class="fas fa-edit"></i> Edit
-                </button>
-                <button class="btn btn-action btn-delete delete-btn" type="button">
-                  <i class="fas fa-trash-alt"></i> Delete
-                </button>
-              </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="5">No users found.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Add User Modal -->
-<div class="modal" id="addModal" tabindex="-1" style="display:none;">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content p-3">
-      <div class="modal-header">
-        <h5 class="modal-title">Add New User</h5>
-        <button type="button" class="btn-close" onclick="closeAddModal()"></button>
-      </div>
-      <form method="post" action="{% url 'create_user' %}" id="createUserForm">
-        {% csrf_token %}
-        <input type="hidden" name="create_user" value="1" />
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="staff_select">Select Staff (optional):</label>
-            <select name="staff" id="staff_select" class="form-select">
-              <option value="">Choose Staff</option>
-              {% for staff in form.fields.staff.queryset %}
-                <option value="{{ staff.id }}"
-                        data-email="{{ staff.email }}"
-                        data-fullname="{{ staff.full_name }}">
-                  {{ staff.full_name }}
-                </option>
-              {% endfor %}
-            </select>
-          </div>
-          <div class="mb-3">
-            <label for="id_email">Email:</label>
-            {{ form.email }}
-          </div>
-          <div class="mb-3">
-            <label for="id_full_name">Full Name:</label>
-            {{ form.full_name }}
-          </div>
-          <div class="mb-3">
-            <label for="id_password1">Password:</label>
-            {{ form.password1 }}
-          </div>
-          <div class="mb-3">
-            <label for="id_password2">Confirm Password:</label>
-            {{ form.password2 }}
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-success" type="submit">Create Account</button>
-          <button class="btn btn-secondary" type="button" onclick="closeAddModal()">Cancel</button>
+  <!-- Search & Filter Bar -->
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <form method="GET" action="{% url 'create_user' %}" id="searchForm">
+        <div class="input-group">
+          <input type="text" class="form-control" placeholder="Search users..." name="q" value="{{ request.GET.q }}" id="searchInput">
+          <button class="btn btn-primary" type="submit">
+            <i class="fas fa-search"></i>
+          </button>
         </div>
       </form>
     </div>
-  </div>
-</div>
+    <div class="col-md-6 text-end">
+      <div class="dropdown">
+        <button class="btn btn-filter dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+          <i class="fas fa-filter me-1"></i>Filter
+        </button>
+        <div class="dropdown-menu dropdown-menu-end filter-dropdown p-3" aria-labelledby="filterDropdown" style="width: 300px;">
+          <form method="GET" action="{% url 'create_user' %}" id="filterForm" onclick="event.stopPropagation()">
+            <input type="hidden" name="q" value="{{ request.GET.q }}">
+            
+            <!-- Date Filter -->
+            <div class="accordion" id="filterAccordion">
+              <div class="accordion-item border-0">
+                <h2 class="accordion-header">
+                  <button class="accordion-button py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDate">
+                    <i class="fas fa-calendar me-2"></i> Date Range
+                  </button>
+                </h2>
+                <div id="collapseDate" class="accordion-collapse collapse show" data-bs-parent="#filterAccordion">
+                  <div class="accordion-body p-0">
+                    <div class="date-range-picker">
+                      <input type="date" class="form-control date-input mb-2" name="start_date" id="startDate" value="{{ request.GET.start_date }}">
+                      <span class="date-range-separator">to</span>
+                      <input type="date" class="form-control date-input mt-2" name="end_date" id="endDate" value="{{ request.GET.end_date }}">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-<!-- Edit User Modal -->
-<div class="modal" id="editUserModal" tabindex="-1" style="display:none;">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content p-3">
-      <div class="modal-header">
-        <h5 class="modal-title">Edit User</h5>
-        <button type="button" class="btn-close" onclick="closeEditModal()"></button>
+            <div class="d-flex justify-content-between mt-3">
+              <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetFilters()">Reset</button>
+              <button type="submit" class="btn btn-sm btn-primary">Apply</button>
+            </div>
+          </form>
+        </div>
       </div>
-      <form id="editUserForm" method="post">
-        {% csrf_token %}
-        <input type="hidden" name="user_id" id="edit_user_id" />
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="edit_email">Email:</label>
-            <input type="email" name="email" id="edit_email" class="form-control" required />
+    </div>
+  </div>
+
+  <!-- Users Table -->
+  <div class="table-responsive">
+    <table class="table table-hover table-striped align-middle text-center" id="usersTable">
+      <thead class="table-light">
+        <tr>
+          <th>Full Name</th>
+          <th>Email</th>
+          <th>Is Active</th>
+          <th>Is Superuser</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr data-user-id="{{ user.id }}" data-user-email="{{ user.email }}" data-user-fullname="{{ user.full_name }}">
+          <td>{{ user.full_name }}</td>
+          <td>{{ user.email }}</td>
+          <td>{{ user.is_active|yesno:"Yes,No" }}</td>
+          <td>{{ user.is_superuser|yesno:"Yes,No" }}</td>
+          <td class="action-cell">
+            <div class="d-flex justify-content-center gap-2">
+              <button class="btn btn-sm btn-primary p-2 edit-btn" title="Edit">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn btn-sm btn-danger p-2 delete-btn" title="Delete">
+                <i class="fas fa-trash-alt"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5">No users found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+<!-- Pagination -->
+{% if users.paginator.num_pages > 1 %}
+<nav aria-label="Page navigation">
+  <ul class="pagination justify-content-center">
+    {% if users.has_previous %}
+    <li class="page-item">
+      <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}" aria-label="First">
+        <span aria-hidden="true">&laquo;&laquo;</span>
+      </a>
+    </li>
+    <li class="page-item">
+      <a class="page-link" href="?page={{ users.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}" aria-label="Previous">
+        <span aria-hidden="true">&laquo;</span>
+      </a>
+    </li>
+    {% endif %}
+
+    {% for num in users.paginator.page_range %}
+      {% if users.number == num %}
+      <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+      {% elif num > users.number|add:'-3' and num < users.number|add:'3' %}
+      <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}">{{ num }}</a></li>
+      {% endif %}
+    {% endfor %}
+
+    {% if users.has_next %}
+    <li class="page-item">
+      <a class="page-link" href="?page={{ users.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}" aria-label="Next">
+        <span aria-hidden="true">&raquo;</span>
+      </a>
+    </li>
+    <li class="page-item">
+      <a class="page-link" href="?page={{ users.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.start_date %}&start_date={{ request.GET.start_date }}{% endif %}{% if request.GET.end_date %}&end_date={{ request.GET.end_date }}{% endif %}" aria-label="Last">
+        <span aria-hidden="true">&raquo;&raquo;</span>
+      </a>
+    </li>
+    {% endif %}
+  </ul>
+</nav>
+{% endif %}
+
+  <!-- Add User Modal -->
+  <div id="addModal" class="modal">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content p-3">
+        <div class="modal-header">
+          <h5 class="modal-title">Add New User</h5>
+          <button type="button" class="btn-close" onclick="closeAddModal()"></button>
+        </div>
+        <form method="post" action="{% url 'create_user' %}" id="createUserForm">
+          {% csrf_token %}
+          <input type="hidden" name="create_user" value="1" />
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="staff_select">Select Staff (optional):</label>
+              <select name="staff" id="staff_select" class="form-select">
+                <option value="">Choose Staff</option>
+                {% for staff in form.fields.staff.queryset %}
+                  <option value="{{ staff.id }}"
+                          data-email="{{ staff.email }}"
+                          data-fullname="{{ staff.full_name }}">
+                    {{ staff.full_name }}
+                  </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="id_email">Email:</label>
+              {{ form.email }}
+            </div>
+            <div class="mb-3">
+              <label for="id_full_name">Full Name:</label>
+              {{ form.full_name }}
+            </div>
+            <div class="mb-3">
+              <label for="id_password1">Password:</label>
+              {{ form.password1 }}
+            </div>
+            <div class="mb-3">
+              <label for="id_password2">Confirm Password:</label>
+              {{ form.password2 }}
+            </div>
           </div>
-          <div class="mb-3">
-            <label for="edit_full_name">Full Name:</label>
-            <input type="text" name="full_name" id="edit_full_name" class="form-control" required />
+          <div class="modal-footer">
+            <button class="btn btn-success" type="submit">Create Account</button>
+            <button class="btn btn-secondary" type="button" onclick="closeAddModal()">Cancel</button>
           </div>
-          <div class="mb-3">
-            <label for="edit_password1">New Password (leave blank to keep current):</label>
-            <input type="password" name="password1" id="edit_password1" class="form-control" />
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit User Modal -->
+  <div class="modal" id="editUserModal" tabindex="-1" style="display:none;">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content p-3">
+        <div class="modal-header">
+          <h5 class="modal-title">Edit User</h5>
+          <button type="button" class="btn-close" onclick="closeEditModal()"></button>
+        </div>
+        <form id="editUserForm" method="post">
+          {% csrf_token %}
+          <input type="hidden" name="user_id" id="edit_user_id" />
+          <div class="modal-body">
+            <div class="mb-3">
+              <label for="edit_email">Email:</label>
+              <input type="email" name="email" id="edit_email" class="form-control" required />
+            </div>
+            <div class="mb-3">
+              <label for="edit_full_name">Full Name:</label>
+              <input type="text" name="full_name" id="edit_full_name" class="form-control" required />
+            </div>
+            <div class="mb-3">
+              <label for="edit_password1">New Password (leave blank to keep current):</label>
+              <input type="password" name="password1" id="edit_password1" class="form-control" />
+            </div>
+            <div class="mb-3">
+              <label for="edit_password2">Confirm New Password:</label>
+              <input type="password" name="password2" id="edit_password2" class="form-control" />
+            </div>
           </div>
-          <div class="mb-3">
-            <label for="edit_password2">Confirm New Password:</label>
-            <input type="password" name="password2" id="edit_password2" class="form-control" />
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary">Update User</button>
+            <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
           </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete User Modal -->
+  <div class="modal" id="deleteUserModal" tabindex="-1" style="display:none;">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content p-3">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirm Delete</h5>
+          <button type="button" class="btn-close" onclick="closeDeleteModal()"></button>
+        </div>
+        <form id="deleteUserForm" method="post">
+          {% csrf_token %}
+          <input type="hidden" name="delete_user_id" id="delete_user_id" />
+          <div class="modal-body">
+            <p>Are you sure you want to delete user <strong id="deleteUserName"></strong>?</p>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-danger">Delete</button>
+            <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Modal -->
+  <div class="modal" id="errorModal" tabindex="-1" style="display:none;">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Error Creating Account:</h5>
+          <button type="button" class="btn-close btn-close-white" onclick="closeErrorModal()"></button>
+        </div>
+        <div class="modal-body" id="errorModalContent">
+          <!-- Errors will be inserted here dynamically -->
         </div>
         <div class="modal-footer">
-          <button type="submit" class="btn btn-primary">Update User</button>
-          <button type="button" class="btn btn-secondary" onclick="closeEditModal()">Cancel</button>
+          <button type="button" class="btn btn-secondary" onclick="closeErrorModal()">Close</button>
         </div>
-      </form>
+      </div>
     </div>
   </div>
 </div>
 
-<!-- Delete User Modal -->
-<div class="modal" id="deleteUserModal" tabindex="-1" style="display:none;">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content p-3">
-      <div class="modal-header">
-        <h5 class="modal-title">Confirm Delete</h5>
-        <button type="button" class="btn-close" onclick="closeDeleteModal()"></button>
-      </div>
-      <form id="deleteUserForm" method="post">
-        {% csrf_token %}
-        <input type="hidden" name="delete_user_id" id="delete_user_id" />
-        <div class="modal-body">
-          <p>Are you sure you want to delete user <strong id="deleteUserName"></strong>?</p>
-        </div>
-        <div class="modal-footer">
-          <button type="submit" class="btn btn-danger">Delete</button>
-          <button type="button" class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-<!-- Scripts -->
 <script>
+// Modal control functions
+function closeModal(id) {
+  document.getElementById(id).style.display = "none";
+}
+
+function openAddModal() {
+  document.getElementById("addModal").style.display = "flex";
+}
+
+function closeAddModal() {
+  document.getElementById("addModal").style.display = "none";
+}
+
+function closeEditModal() {
+  document.getElementById("editUserModal").style.display = "none";
+}
+
+function closeDeleteModal() {
+  document.getElementById("deleteUserModal").style.display = "none";
+}
+
+function closeErrorModal() {
+  document.getElementById("errorModal").style.display = "none";
+}
+
+// Edit function
+function openEditModal(userId, email, fullName) {
+  document.getElementById("edit_user_id").value = userId;
+  document.getElementById("edit_email").value = email;
+  document.getElementById("edit_full_name").value = fullName;
+  document.getElementById("edit_password1").value = '';
+  document.getElementById("edit_password2").value = '';
+  document.getElementById("editUserModal").style.display = "flex";
+}
+
+// Delete function
+function openDeleteModal(userId, fullName) {
+  document.getElementById('delete_user_id').value = userId;
+  document.getElementById('deleteUserName').textContent = fullName;
+  document.getElementById('deleteUserModal').style.display = 'flex';
+}
+
+// Filter functions
+function resetFilters() {
+  document.getElementById('startDate').value = '';
+  document.getElementById('endDate').value = '';
+  document.getElementById('filterForm').submit();
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  // Show error modal if there are server-side form errors
+  const serverErrors = document.getElementById('serverErrors').innerHTML.trim();
+  if (serverErrors) {
+    document.getElementById('errorModalContent').innerHTML = serverErrors;
+    document.getElementById('errorModal').style.display = 'flex';
+  }
+
+  // Client-side search for users table
+  document.getElementById('searchInput')?.addEventListener('input', function() {
+    const filter = this.value.toLowerCase();
+    document.querySelectorAll('#usersTable tbody tr').forEach(row => {
+      row.style.display = row.textContent.toLowerCase().includes(filter) ? '' : 'none';
+    });
+  });
+
   // Autofill email and full name from selected staff
   const staffSelect = document.getElementById('staff_select');
   const emailInput = document.getElementById('id_email');
   const fullNameInput = document.getElementById('id_full_name');
 
-  staffSelect.addEventListener('change', function () {
-    const selected = this.options[this.selectedIndex];
-    const fullName = selected.getAttribute('data-fullname') || '';
-    const email = selected.getAttribute('data-email') || '';
-
-    fullNameInput.value = fullName;
-    emailInput.value = email;
-  });
-
-  // Simple search/filter for users table
-  document.getElementById('searchInput')?.addEventListener('input', function() {
-    const filter = this.value.toLowerCase();
-    const rows = document.querySelectorAll('#usersTable tbody tr');
-    rows.forEach(row => {
-      const rowText = row.textContent.toLowerCase();
-      row.style.display = rowText.includes(filter) ? '' : 'none';
+  if (staffSelect && emailInput && fullNameInput) {
+    staffSelect.addEventListener('change', function() {
+      const selected = this.options[this.selectedIndex];
+      fullNameInput.value = selected.getAttribute('data-fullname') || '';
+      emailInput.value = selected.getAttribute('data-email') || '';
     });
-  });
-
-  // Modal functions
-  function openAddModal() {
-    document.getElementById('addModal').style.display = 'block';
-  }
-
-  function closeAddModal() {
-    document.getElementById('addModal').style.display = 'none';
-  }
-
-  function openEditModal(userId, email, fullName) {
-    document.getElementById('edit_user_id').value = userId;
-    document.getElementById('edit_email').value = email;
-    document.getElementById('edit_full_name').value = fullName;
-    document.getElementById('edit_password1').value = '';
-    document.getElementById('edit_password2').value = '';
-    document.getElementById('editUserModal').style.display = 'block';
-  }
-
-  function closeEditModal() {
-    document.getElementById('editUserModal').style.display = 'none';
-  }
-
-  function openDeleteModal(userId, fullName) {
-    document.getElementById('delete_user_id').value = userId;
-    document.getElementById('deleteUserName').textContent = fullName;
-    document.getElementById('deleteUserModal').style.display = 'block';
-  }
-
-  function closeDeleteModal() {
-    document.getElementById('deleteUserModal').style.display = 'none';
   }
 
   // Set up event listeners for edit/delete buttons
   document.querySelectorAll('.edit-btn').forEach(button => {
     button.addEventListener('click', () => {
       const tr = button.closest('tr');
-      const userId = tr.dataset.userId;
-      const email = tr.dataset.userEmail;
-      const fullName = tr.dataset.userFullname;
-      openEditModal(userId, email, fullName);
+      openEditModal(tr.dataset.userId, tr.dataset.userEmail, tr.dataset.userFullname);
     });
   });
 
   document.querySelectorAll('.delete-btn').forEach(button => {
     button.addEventListener('click', () => {
       const tr = button.closest('tr');
-      const userId = tr.dataset.userId;
-      const fullName = tr.dataset.userFullname;
-      openDeleteModal(userId, fullName);
+      openDeleteModal(tr.dataset.userId, tr.dataset.userFullname);
     });
   });
 
-  // Close modals on outside click
-  window.onclick = function(event) {
-    if (event.target === document.getElementById('addModal')) {
-      closeAddModal();
-    }
-    if (event.target === document.getElementById('editUserModal')) {
-      closeEditModal();
-    }
-    if (event.target === document.getElementById('deleteUserModal')) {
-      closeDeleteModal();
-    }
-  };
-</script>
+  // Auto-close modals when clicking outside
+  document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', function(e) {
+      if (e.target === this) {
+        this.style.display = 'none';
+      }
+    });
+  });
 
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  // Password validation
+  const createUserForm = document.getElementById('createUserForm');
+  if (createUserForm) {
+    createUserForm.addEventListener('submit', function(e) {
+      const pass = document.getElementById('id_password1')?.value || '';
+      const confirmPass = document.getElementById('id_password2')?.value || '';
+      
+      if (pass.length < 8) {
+        e.preventDefault();
+        showErrorModal('<li><strong>Password:</strong> Must be at least 8 characters long.</li>');
+        return;
+      }
+      
+      if (pass !== confirmPass) {
+        e.preventDefault();
+        showErrorModal('<li><strong>Password:</strong> The two password fields didn\'t match.</li>');
+        return;
+      }
+    });
+  }
+});
+
+// Helper function to show error modal
+function showErrorModal(content) {
+  const errorModalEl = document.getElementById('errorModal');
+  const errorModalContent = document.getElementById('errorModalContent');
+  
+  if (!errorModalEl || !errorModalContent) return;
+  
+  errorModalContent.innerHTML = content.startsWith('<div') ? content : 
+    `<div class="alert alert-danger"><ul class="mb-0">${content}</ul></div>`;
+  
+  errorModalEl.style.display = 'flex';
+}
+</script>
 {% endblock %}

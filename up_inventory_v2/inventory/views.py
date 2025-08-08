@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import StaffRecord, Department, Device, BorrowRecord, HistoryLog
-from .forms import StaffRecordForm, DepartmentForm, DeviceForm, BorrowForm, ReturnForm, ReturnEditForm
+from .models import StaffRecord, Department, Device, BorrowRecord, HistoryLog, DEVICE_STATUS_CHOICES, Location
+from .forms import StaffRecordForm, DepartmentForm, DeviceForm, BorrowForm, ReturnForm, ReturnEditForm, LocationForm
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Q
 import openpyxl
@@ -12,10 +12,13 @@ from django.db import models
 from inventory.utils import log_action
 from django.http import HttpResponse
 from django.template.loader import get_template
-from xhtml2pdf import pisa
+from xhtml2pdf import pisa # type: ignore
 from io import BytesIO
 from django.conf import settings
 import os
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.contrib.auth import get_user_model
+
 
 # Create your views here.
 def home_view(request):
@@ -188,10 +191,43 @@ def export_staff_excel(request):
 @login_required
 def department_list(request):
     query = request.GET.get("q", "")
+    start_date = request.GET.get("start_date", "")
+    end_date = request.GET.get("end_date", "")
+    page = request.GET.get('page', 1)
+
+    departments = Department.objects.all().order_by('-created_at')
+
     if query:
-        departments = Department.objects.filter(name__icontains=query).order_by('-created_at')
-    else:
-        departments = Department.objects.all().order_by('-created_at')
+        departments = departments.filter(name__icontains=query)
+    
+    if start_date and end_date:
+        try:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            departments = departments.filter(created_at__date__range=[start_date, end_date])
+        except ValueError:
+            messages.error(request, "Invalid date format. Please use YYYY-MM-DD.")
+    elif start_date:
+        try:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            departments = departments.filter(created_at__date__gte=start_date)
+        except ValueError:
+            messages.error(request, "Invalid date format. Please use YYYY-MM-DD.")
+    elif end_date:
+        try:
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            departments = departments.filter(created_at__date__lte=end_date)
+        except ValueError:
+            messages.error(request, "Invalid date format. Please use YYYY-MM-DD.")
+
+    # Add pagination
+    paginator = Paginator(departments, 15)  # Show 15 departments per page
+    try:
+        departments = paginator.page(page)
+    except PageNotAnInteger:
+        departments = paginator.page(1)
+    except EmptyPage:
+        departments = paginator.page(paginator.num_pages)
 
     form = DepartmentForm()
 
@@ -207,12 +243,15 @@ def department_list(request):
                 dept.id,
                 f"Updated department {dept.name}"
             )
+            messages.success(request, "Department updated successfully.")
             return redirect('department')
 
     return render(request, 'department.html', {
         'departments': departments,
         'form': form,
-        'query': query
+        'query': query,
+        'start_date': start_date,
+        'end_date': end_date,
     })
 
 @login_required
@@ -285,20 +324,12 @@ def export_department_excel(request):
 
 
 
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth.decorators import login_required, user_passes_test
-from django.db.models import Q
-from django.contrib import messages
-from datetime import datetime
-from .models import Device, DEVICE_STATUS_CHOICES
-from .forms import DeviceForm
-import openpyxl
-from django.http import HttpResponse
 
 @login_required
 def device_list(request):
     query = request.GET.get("q", "")
     status_filter = request.GET.get("status", "")
+    location_filter = request.GET.get("location", "")
     start_date = request.GET.get("start_date", "")
     end_date = request.GET.get("end_date", "")
     name_filter = request.GET.get("name", "")
@@ -310,11 +341,15 @@ def device_list(request):
             Q(name__icontains=query) |
             Q(model_brand__icontains=query) |
             Q(serial_number__icontains=query) |
-            Q(status__icontains=query)
+            Q(status__icontains=query) |
+            Q(location__name__icontains=query)
         )
     
     if status_filter:
         devices = devices.filter(status=status_filter)
+    
+    if location_filter:
+        devices = devices.filter(location__id=location_filter)
     
     if name_filter:
         devices = devices.filter(name__iexact=name_filter)
@@ -341,6 +376,7 @@ def device_list(request):
 
     unique_names = Device.objects.values_list('name', flat=True).distinct()
     form = DeviceForm()
+    locations = Location.objects.all()
 
     if request.method == 'POST' and request.POST.get("id"):
         device = get_object_or_404(Device, pk=request.POST["id"])
@@ -366,13 +402,16 @@ def device_list(request):
         'devices': devices,
         'form': form,
         'DEVICE_STATUS_CHOICES': DEVICE_STATUS_CHOICES,
+        'locations': locations,
         'query': query,
         'unique_names': unique_names,
         'status_filter': status_filter,
+        'location_filter': location_filter,
         'name_filter': name_filter,
         'start_date': start_date,
         'end_date': end_date,
     })
+
 
 @login_required
 @user_passes_test(lambda u: u.is_superuser)
@@ -446,6 +485,7 @@ def view_device(request, pk):
 def export_device_excel(request):
     query = request.GET.get("q", "")
     status_filter = request.GET.get("status", "")
+    location_filter = request.GET.get("location", "")
     name_filter = request.GET.get("name", "")
     
     devices = Device.objects.all()
@@ -455,11 +495,15 @@ def export_device_excel(request):
             Q(name__icontains=query) |
             Q(model_brand__icontains=query) |
             Q(serial_number__icontains=query) |
-            Q(status__icontains=query)
+            Q(status__icontains=query) |
+            Q(location__name__icontains=query)
         )
     
     if status_filter:
         devices = devices.filter(status=status_filter)
+    
+    if location_filter:
+        devices = devices.filter(location__id=location_filter)
     
     if name_filter:
         devices = devices.filter(name__iexact=name_filter)
@@ -469,17 +513,17 @@ def export_device_excel(request):
         'export',
         'Device',
         None,
-        f"Exported device records with filters: query={query}, status={status_filter}, name={name_filter}"
+        f"Exported device records with filters: query={query}, status={status_filter}, location={location_filter}, name={name_filter}"
     )
 
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Devices"
     
-    headers = ["Name", "Model/Brand", "Serial Number", "Status", "Created Date"]
+    headers = ["Name", "Model/Brand", "Serial Number", "Status", "Location", "Created Date"]
     ws.append(headers)
     
-    column_widths = [20, 20, 20, 15, 20]
+    column_widths = [20, 20, 20, 15, 20, 20]
     for i, width in enumerate(column_widths, 1):
         ws.column_dimensions[openpyxl.utils.get_column_letter(i)].width = width
 
@@ -489,6 +533,7 @@ def export_device_excel(request):
             device.model_brand,
             device.serial_number,
             device.get_status_display(),
+            device.location.name if device.location else '',
             device.created_at.strftime("%Y-%m-%d %H:%M"),
         ])
 
@@ -498,6 +543,7 @@ def export_device_excel(request):
     )
     wb.save(response)
     return response
+
 
 
 
@@ -519,6 +565,7 @@ def inventory_view(request):
     filter_date = request.GET.get('date')
     staff_filter = request.GET.get('staff_name')
     status_filter = request.GET.get('status')
+    page = request.GET.get('page', 1)
 
     borrowed_records = BorrowRecord.objects.filter(date_returned__isnull=True)
     returned_records = BorrowRecord.objects.filter(date_returned__isnull=False)
@@ -544,8 +591,26 @@ def inventory_view(request):
     elif status_filter == 'returned':
         borrowed_records = borrowed_records.none()
 
-    borrowed_records = borrowed_records.select_related('staff', 'device', 'staff__department')
-    returned_records = returned_records.select_related('staff', 'device', 'staff__department')
+    borrowed_records = borrowed_records.select_related('staff', 'device', 'staff__department', 'device__location').order_by('-date_issued')
+    returned_records = returned_records.select_related('staff', 'device', 'staff__department', 'device__location').order_by('-date_returned')
+
+    # Add pagination
+    borrowed_paginator = Paginator(borrowed_records, 15)  # 15 records per page
+    returned_paginator = Paginator(returned_records, 15)  # 15 records per page
+
+    try:
+        borrowed_records = borrowed_paginator.page(page)
+    except PageNotAnInteger:
+        borrowed_records = borrowed_paginator.page(1)
+    except EmptyPage:
+        borrowed_records = borrowed_paginator.page(borrowed_paginator.num_pages)
+
+    try:
+        returned_records = returned_paginator.page(page)
+    except PageNotAnInteger:
+        returned_records = returned_paginator.page(1)
+    except EmptyPage:
+        returned_records = returned_paginator.page(returned_paginator.num_pages)
 
     borrow_form = BorrowForm(available_devices=available_devices, active_staff=active_staff)
     return_form = ReturnForm()
@@ -594,7 +659,7 @@ def inventory_view(request):
         'borrowed_records': borrowed_records,
         'returned_records': returned_records,
         'borrow_form': borrow_form,
-        'return_form': return_form,
+        'return_form': return_form, 
         'active_staff': active_staff,
         'available_devices': available_devices,
         'filter_date': filter_date,
@@ -856,9 +921,6 @@ def dashboard_view(request):
 
 
 
-from django.contrib.auth import get_user_model
-from django.core.paginator import Paginator
-from .models import HistoryLog
 
 CustomUser = get_user_model()
 
@@ -896,3 +958,140 @@ def history_log(request):
         'user_choices': CustomUser.objects.filter(historylog__isnull=False).distinct(),
     }
     return render(request, 'history_log.html', context)
+
+
+
+
+
+
+
+
+
+
+
+
+@login_required
+def location_list(request):
+    query = request.GET.get("q", "")
+    start_date = request.GET.get("start_date", "")
+    end_date = request.GET.get("end_date", "")
+    page = request.GET.get('page', 1)
+
+    locations = Location.objects.all().order_by('-created_at')
+
+    if query:
+        locations = locations.filter(name__icontains=query)
+    
+    if start_date and end_date:
+        try:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            locations = locations.filter(created_at__date__range=[start_date, end_date])
+        except ValueError:
+            messages.error(request, "Invalid date format. Please use YYYY-MM-DD.")
+    elif start_date:
+        try:
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
+            locations = locations.filter(created_at__date__gte=start_date)
+        except ValueError:
+            messages.error(request, "Invalid date format. Please use YYYY-MM-DD.")
+    elif end_date:
+        try:
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').date()
+            locations = locations.filter(created_at__date__lte=end_date)
+        except ValueError:
+            messages.error(request, "Invalid date format. Please use YYYY-MM-DD.")
+
+    paginator = Paginator(locations, 15)
+    try:
+        locations = paginator.page(page)
+    except PageNotAnInteger:
+        locations = paginator.page(1)
+    except EmptyPage:
+        locations = paginator.page(paginator.num_pages)
+
+    form = LocationForm()
+
+    if request.method == 'POST' and request.POST.get("id"):
+        loc = get_object_or_404(Location, pk=request.POST["id"])
+        form = LocationForm(request.POST, instance=loc)
+        if form.is_valid():
+            form.save()
+            log_action(
+                request,
+                'update',
+                'Location',
+                loc.id,
+                f"Updated location {loc.name}"
+            )
+            messages.success(request, "Location updated successfully.")
+            return redirect('location')
+
+    return render(request, 'location.html', {
+        'locations': locations,
+        'form': form,
+        'query': query,
+        'start_date': start_date,
+        'end_date': end_date,
+    })
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def add_location(request):
+    if request.method == 'POST':
+        form = LocationForm(request.POST)
+        if form.is_valid():
+            loc = form.save()
+            log_action(
+                request,
+                'create',
+                'Location',
+                loc.id,
+                f"Created new location {loc.name}"
+            )
+            messages.success(request, "Location created successfully.")
+    return redirect('location')
+
+@login_required
+@user_passes_test(lambda u: u.is_superuser)
+def delete_location(request, pk):
+    loc = get_object_or_404(Location, pk=pk)
+    log_action(
+        request,
+        'delete',
+        'Location',
+        loc.id,
+        f"Deleted location {loc.name}"
+    )
+    loc.delete()
+    messages.success(request, "Location deleted successfully.")
+    return redirect('location')
+
+@login_required
+def export_location_excel(request):
+    query = request.GET.get("q", "")
+    locations = Location.objects.filter(name__icontains=query) if query else Location.objects.all().order_by('-created_at')
+
+    log_action(
+        request,
+        'export',
+        'Location',
+        None,
+        f"Exported location records with filter: query={query}"
+    )
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Locations"
+    ws.append(["Location Name", "Date Created"])
+
+    for loc in locations:
+        ws.append([
+            loc.name,
+            loc.created_at.strftime("%Y-%m-%d %H:%M:%S") if loc.created_at else ''
+        ])
+
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=locations.xlsx'
+    wb.save(response)
+    return response
