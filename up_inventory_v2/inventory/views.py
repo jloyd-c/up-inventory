@@ -922,6 +922,11 @@ def dashboard_view(request):
 
 
 
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.http import require_POST
+import openpyxl
+from django.db.models import Count
+
 CustomUser = get_user_model()
 
 @login_required
@@ -958,6 +963,81 @@ def history_log(request):
         'user_choices': CustomUser.objects.filter(historylog__isnull=False).distinct(),
     }
     return render(request, 'history_log.html', context)
+
+@require_POST
+@login_required
+def delete_history_log(request, log_id):
+    try:
+        log = HistoryLog.objects.get(id=log_id)
+        log.delete()
+        return JsonResponse({'success': True})
+    except HistoryLog.DoesNotExist:
+        return JsonResponse({'success': False, 'error': 'Log not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@require_POST
+@login_required
+def clear_history_logs(request):
+    try:
+        count = HistoryLog.objects.all().count()
+        HistoryLog.objects.all().delete()
+        return JsonResponse({'success': True, 'count': count})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=500)
+
+@login_required
+def export_history_excel(request):
+    logs = HistoryLog.objects.all().select_related('user').order_by('-timestamp')
+    
+    # Apply the same filters as the main view
+    action_filter = request.GET.get('action')
+    model_filter = request.GET.get('model')
+    user_filter = request.GET.get('user')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    
+    if action_filter:
+        logs = logs.filter(action=action_filter)
+    if model_filter:
+        logs = logs.filter(model_name=model_filter)
+    if user_filter:
+        logs = logs.filter(user__email=user_filter)
+    if date_from:
+        logs = logs.filter(timestamp__date__gte=date_from)
+    if date_to:
+        logs = logs.filter(timestamp__date__lte=date_to)
+    
+    # Create Excel workbook
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "History Log"
+    
+    # Add headers
+    headers = [
+        'Timestamp', 'User', 'Action', 'Model', 
+        'Details', 'IP Address', 'Object ID'
+    ]
+    ws.append(headers)
+    
+    # Add data
+    for log in logs:
+        ws.append([
+            log.timestamp.strftime('%Y-%m-%d %H:%M'),
+            log.user.email if log.user else 'System',
+            log.get_action_display(),
+            log.model_name,
+            log.details,
+            log.ip_address or '-',
+            log.object_id or '-'
+        ])
+    
+    # Create response
+    response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+    response['Content-Disposition'] = 'attachment; filename=history_log_export.xlsx'
+    wb.save(response)
+    
+    return response
 
 
 

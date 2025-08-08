@@ -53,6 +53,9 @@ urlpatterns = [
     
 
     path('history/', views.history_log, name='history_log'),
+    path('history/delete/<int:log_id>/', views.delete_history_log, name='delete_history_log'),
+    path('history/clear/', views.clear_history_logs, name='clear_history_logs'),
+    path('history/export/', views.export_history_excel, name='export_history_excel'),
 
     # In your urls.py
     path('devices/<int:pk>/view/', views.view_device, name='view_device'),
