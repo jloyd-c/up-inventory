@@ -18,6 +18,7 @@ from django.conf import settings
 import os
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth import get_user_model
+from django.db.models import Case, When, BooleanField
 
 
 # Create your views here.
@@ -336,6 +337,11 @@ def device_list(request):
 
     devices = Device.objects.all().order_by('-created_at')
 
+    # Get list of device IDs that have been returned (in return table)
+    returned_device_ids = BorrowRecord.objects.filter(
+        date_returned__isnull=False
+    ).values_list('device_id', flat=True).distinct()
+
     if query:
         devices = devices.filter(
             Q(name__icontains=query) |
@@ -397,6 +403,15 @@ def device_list(request):
             return redirect('devices')
         else:
             messages.error(request, "Error updating device. Please check the form.")
+
+    # Annotate each device with whether it's in the return table
+    devices = devices.annotate(
+        is_returned=Case(
+            When(id__in=returned_device_ids, then=True),
+            default=False,
+            output_field=BooleanField()
+        )
+    )
 
     return render(request, 'devices.html', {
         'devices': devices,
@@ -462,9 +477,21 @@ def update_device(request, pk):
     return redirect('devices')
 
 @login_required
+def check_device_records(request, pk):
+    device = get_object_or_404(Device, pk=pk)
+    has_records = BorrowRecord.objects.filter(device=device).exists()
+    return JsonResponse({'has_records': has_records})
+
+@login_required
 @user_passes_test(lambda u: u.is_superuser)
 def delete_device(request, pk):
     device = get_object_or_404(Device, pk=pk)
+    
+    # Check if device has any borrow records
+    if BorrowRecord.objects.filter(device=device).exists():
+        messages.error(request, "Cannot delete device - it has existing borrow/return records.")
+        return redirect('devices')
+    
     log_action(
         request,
         'delete',

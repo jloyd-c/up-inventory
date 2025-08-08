@@ -31,6 +31,7 @@ urlpatterns = [
     path('devices/update/<int:pk>/', views.update_device, name='update_device'),
     path('devices/delete/<int:pk>/', views.delete_device, name='delete_device'),
     path('devices/export/', views.export_device_excel, name='export_device_excel'),
+    path('devices/check_records/<int:pk>/', views.check_device_records, name='check_device_records'),
 
 
 

@@ -198,7 +198,8 @@
                     data-image-url="{% if device.image %}{{ device.image.url }}{% endif %}">
                     <i class="fas fa-eye"></i>
                   </button>
-                  {% if user.is_superuser %}
+                  
+                  {% if user.is_superuser or device.status == 'available' or device.is_returned %}
                   <button class="btn btn-sm btn-primary p-2" title="Edit"
                     onclick="handleEditClick(this)"
                     data-id="{{ device.id }}"
@@ -210,6 +211,9 @@
                     data-image-url="{% if device.image %}{{ device.image.url }}{% endif %}">
                     <i class="fas fa-edit"></i>
                   </button>
+                  {% endif %}
+                  
+                  {% if user.is_superuser %}
                   <button class="btn btn-sm btn-danger p-2" title="Delete" 
                     onclick="openDeleteModal('{{ device.pk }}')" 
                     type="button">
@@ -449,6 +453,28 @@
     </div>
   </div>
 
+  <!-- Delete Warning Modal -->
+  <div class="modal" id="deleteWarningModal" tabindex="-1" style="display:none;">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content p-3">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-exclamation-triangle me-2"></i>Cannot Delete Asset</h5>
+          <button type="button" class="btn-close" onclick="closeDeleteWarningModal()"></button>
+        </div>
+        <div class="modal-body">
+          <div class="alert alert-warning" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            This asset cannot be deleted because it has existing transaction records.
+          </div>
+          <p class="mb-0">To maintain data integrity, assets with transaction history cannot be deleted.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-warning" onclick="closeDeleteWarningModal()">OK</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Image Viewer Modal -->
   <div class="modal fade" id="imageViewerModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" style="z-index: 1080;">
     <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -470,6 +496,7 @@
     const editModal = document.getElementById("editModal");
     const viewModal = document.getElementById("viewModal");
     const deleteModal = document.getElementById("deleteModal");
+    const deleteWarningModal = document.getElementById("deleteWarningModal");
 
     // Image viewer function
     function openImageViewer(imageUrl, imageName) {
@@ -547,15 +574,41 @@
         editModal.style.display = "block";
     }
 
-    function openDeleteModal(deviceId) {
-        const deleteForm = document.getElementById('deleteForm');
-        const baseUrl = "{% url 'delete_device' 0 %}".slice(0, -2);
-        deleteForm.action = `${baseUrl}${deviceId}/`;
-        deleteModal.style.display = 'flex';
+    async function openDeleteModal(deviceId) {
+        try {
+            const response = await fetch(`/devices/check_records/${deviceId}/`);
+            if (!response.ok) throw new Error('Network response was not ok');
+            
+            const data = await response.json();
+            
+            if (data.has_records) {
+                openDeleteWarningModal();
+            } else {
+                const deleteForm = document.getElementById('deleteForm');
+                const baseUrl = "{% url 'delete_device' 0 %}".slice(0, -2);
+                deleteForm.action = `${baseUrl}${deviceId}/`;
+                deleteModal.style.display = 'flex';
+            }
+        } catch (error) {
+            console.error('Error checking device records:', error);
+            // Fallback to original behavior if check fails
+            const deleteForm = document.getElementById('deleteForm');
+            const baseUrl = "{% url 'delete_device' 0 %}".slice(0, -2);
+            deleteForm.action = `${baseUrl}${deviceId}/`;
+            deleteModal.style.display = 'flex';
+        }
     }
 
     function closeDeleteModal() {
         deleteModal.style.display = 'none';
+    }
+
+    function openDeleteWarningModal() {
+        deleteWarningModal.style.display = 'flex';
+    }
+
+    function closeDeleteWarningModal() {
+        deleteWarningModal.style.display = 'none';
     }
 
     function resetFilters() {
@@ -643,4 +696,5 @@
         });
     });
   </script>
+</div>
 {% endblock %}
