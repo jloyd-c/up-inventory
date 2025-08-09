@@ -19,9 +19,11 @@ import os
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.contrib.auth import get_user_model
 from django.db.models import Case, When, BooleanField
+from django.http import JsonResponse, HttpResponse
+from django.views.decorators.http import require_POST
 
 
-# Create your views here.
+
 def home_view(request):
     return render(request, 'home.html')
 
@@ -221,8 +223,8 @@ def department_list(request):
         except ValueError:
             messages.error(request, "Invalid date format. Please use YYYY-MM-DD.")
 
-    # Add pagination
-    paginator = Paginator(departments, 15)  # Show 15 departments per page
+
+    paginator = Paginator(departments, 15)  
     try:
         departments = paginator.page(page)
     except PageNotAnInteger:
@@ -337,7 +339,7 @@ def device_list(request):
 
     devices = Device.objects.all().order_by('-created_at')
 
-    # Get list of device IDs that have been returned (in return table)
+
     returned_device_ids = BorrowRecord.objects.filter(
         date_returned__isnull=False
     ).values_list('device_id', flat=True).distinct()
@@ -404,7 +406,7 @@ def device_list(request):
         else:
             messages.error(request, "Error updating device. Please check the form.")
 
-    # Annotate each device with whether it's in the return table
+
     devices = devices.annotate(
         is_returned=Case(
             When(id__in=returned_device_ids, then=True),
@@ -487,7 +489,7 @@ def check_device_records(request, pk):
 def delete_device(request, pk):
     device = get_object_or_404(Device, pk=pk)
     
-    # Check if device has any borrow records
+
     if BorrowRecord.objects.filter(device=device).exists():
         messages.error(request, "Cannot delete device - it has existing borrow/return records.")
         return redirect('devices')
@@ -622,8 +624,8 @@ def inventory_view(request):
     returned_records = returned_records.select_related('staff', 'device', 'staff__department', 'device__location').order_by('-date_returned')
 
     # Add pagination
-    borrowed_paginator = Paginator(borrowed_records, 15)  # 15 records per page
-    returned_paginator = Paginator(returned_records, 15)  # 15 records per page
+    borrowed_paginator = Paginator(borrowed_records, 15)  
+    returned_paginator = Paginator(returned_records, 15)  
 
     try:
         borrowed_records = borrowed_paginator.page(page)
@@ -785,7 +787,7 @@ def export_inventory_excel(request):
 
     wb = openpyxl.Workbook()
     
-    # Borrowed Devices Sheet
+
     ws1 = wb.active
     ws1.title = "Add Asset"
     ws1.append(['Name of Staff', 'Department', 'Equipment', 'Model/Brand',
@@ -803,7 +805,7 @@ def export_inventory_excel(request):
             record.remarks,
         ])
 
-    # Returned Devices Sheet
+
     ws2 = wb.create_sheet(title="Returned Asset")
     ws2.append(['Name of Staff', 'Department', 'Equipment', 'Model/Brand',
                 'Date Issued', 'Date Returned', 'Serial Number', 'PR Number', 'Remarks'])
@@ -840,7 +842,7 @@ def download_inventory_pdf(request):
         if record_type == 'borrowed' and record.date_returned is not None:
             raise Http404("This is not a currently borrowed record")
             
-        # Determine which template to use
+
         if record.date_returned is None:
             template = 'inventory-pdf/borrowed_pdf.html'
         else:
@@ -853,11 +855,11 @@ def download_inventory_pdf(request):
             'STATIC_URL': settings.STATIC_URL,
         }
         
-        # Render template
+
         template = get_template(template)
         html = template.render(context)
         
-        # Create PDF
+
         result = BytesIO()
         
         def fetch_resources(uri, rel):
@@ -903,17 +905,14 @@ def download_inventory_pdf(request):
 
 @login_required
 def dashboard_view(request):
-    # Basic counts
     total_devices = Device.objects.count()
     total_staff = StaffRecord.objects.count()
     borrowed_devices = BorrowRecord.objects.filter(date_returned__isnull=True).count()
     available_devices = Device.objects.filter(status='available').count()
     
-    # Recent activity
     recent_borrowed = BorrowRecord.objects.filter(date_returned__isnull=True).order_by('-date_issued')[:5]
     recent_returns = BorrowRecord.objects.filter(date_returned__isnull=False).order_by('-date_returned')[:5]
     
-    # Device status breakdown
     device_status_counts = Device.objects.values('status').annotate(count=models.Count('id')).order_by('-count')
     
     context = {
@@ -949,10 +948,7 @@ def dashboard_view(request):
 
 
 
-from django.http import JsonResponse, HttpResponse
-from django.views.decorators.http import require_POST
-import openpyxl
-from django.db.models import Count
+
 
 CustomUser = get_user_model()
 
@@ -960,7 +956,6 @@ CustomUser = get_user_model()
 def history_log(request):
     logs = HistoryLog.objects.all().select_related('user').order_by('-timestamp')
     
-    # Filters
     action_filter = request.GET.get('action')
     model_filter = request.GET.get('model')
     user_filter = request.GET.get('user')
@@ -978,8 +973,7 @@ def history_log(request):
     if date_to:
         logs = logs.filter(timestamp__date__lte=date_to)
     
-    # Pagination
-    paginator = Paginator(logs, 25)  # Show 25 logs per page
+    paginator = Paginator(logs, 25)  
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
@@ -1017,7 +1011,6 @@ def clear_history_logs(request):
 def export_history_excel(request):
     logs = HistoryLog.objects.all().select_related('user').order_by('-timestamp')
     
-    # Apply the same filters as the main view
     action_filter = request.GET.get('action')
     model_filter = request.GET.get('model')
     user_filter = request.GET.get('user')
@@ -1034,20 +1027,19 @@ def export_history_excel(request):
         logs = logs.filter(timestamp__date__gte=date_from)
     if date_to:
         logs = logs.filter(timestamp__date__lte=date_to)
-    
-    # Create Excel workbook
+
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "History Log"
     
-    # Add headers
+
     headers = [
         'Timestamp', 'User', 'Action', 'Model', 
         'Details', 'IP Address', 'Object ID'
     ]
     ws.append(headers)
     
-    # Add data
+
     for log in logs:
         ws.append([
             log.timestamp.strftime('%Y-%m-%d %H:%M'),
@@ -1059,7 +1051,7 @@ def export_history_excel(request):
             log.object_id or '-'
         ])
     
-    # Create response
+
     response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
     response['Content-Disposition'] = 'attachment; filename=history_log_export.xlsx'
     wb.save(response)

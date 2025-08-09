@@ -2,13 +2,12 @@
 {% load static %}
 
 {% block content %}
-<!-- Font Awesome and Bootstrap CSS -->
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/inventory.css' %}">
 
 <div class="staff-page container mt-4">
-  <!-- Top Bar -->
+
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="mb-0"><i class="fas fa-boxes me-2"></i>Asset Management</h2>
     <div class="d-flex gap-2">
@@ -189,7 +188,6 @@
               </tbody>
             </table>
           </div>
-          <!-- Pagination for Borrowed Records -->
           {% if borrowed_records.paginator.num_pages > 1 %}
           <nav aria-label="Borrowed records pagination">
             <ul class="pagination justify-content-center mt-3">
@@ -318,7 +316,6 @@
               </tbody>
             </table>
           </div>
-          <!-- Pagination for Returned Records -->
           {% if returned_records.paginator.num_pages > 1 %}
           <nav aria-label="Returned records pagination">
             <ul class="pagination justify-content-center mt-3">
@@ -364,7 +361,6 @@
   </div>
 </div>
 
-<!-- Borrow Modal (Redesigned with 2-Column Grid) -->
 <div id="borrowModal" class="modal">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content p-3">
@@ -376,10 +372,10 @@
         {% csrf_token %}
         <input type="hidden" name="borrow_submit" value="1">
         <div class="modal-body">
-          <div class="row g-3"> <!-- Grid row with gutter spacing -->
-            <!-- Left Column -->
+          <div class="row g-3"> 
+            
             <div class="col-md-6">
-              <!-- Staff Selection -->
+             
               <div class="mb-3">
                 <label for="staff_select" class="form-label">Staff</label>
                 <select name="staff" id="staff_select" class="form-select" onchange="fillStaffInfo()" required>
@@ -392,7 +388,7 @@
                 </select>
               </div>
 
-              <!-- Auto-filled Staff Info -->
+          
               <div class="mb-3">
                 <label class="form-label">Staff Name</label>
                 <input type="text" id="staff_name" class="form-control" readonly>
@@ -404,9 +400,9 @@
               </div>
             </div>
 
-            <!-- Right Column -->
+   
             <div class="col-md-6">
-              <!-- Asset Selection -->
+           
               <div class="mb-3">
                 <label for="device_select" class="form-label">Asset</label>
                 <select name="device" id="device_select" class="form-select" onchange="fillDeviceInfo()" required>
@@ -423,7 +419,6 @@
                 </select>
               </div>
 
-              <!-- Auto-filled Device Info -->
               <div class="mb-3">
                 <label class="form-label">Asset Name</label>
                 <input type="text" id="device_name" class="form-control" readonly>
@@ -446,7 +441,7 @@
             </div>
           </div>
 
-          <!-- Full-width Fields (PR Number & Remarks) -->
+
           <div class="row">
             <div class="col-12">
               <div class="mb-3">
@@ -480,14 +475,14 @@
         <button type="button" class="btn-close" onclick="closeViewModal()"></button>
       </div>
       <div class="modal-body">
-        <!-- Big image on top -->
+
         <div class="view-modal-image-container mb-4">
           <div id="view-image-container" class="text-center">
             <img id="view-image" src="" class="img-fluid rounded" style="max-height: 300px; width: auto;">
           </div>
         </div>
         
-        <!-- Table below the image -->
+
         <div class="view-modal-table-container">
           <table class="table table-bordered view-modal-table">
             <tr>
@@ -588,7 +583,6 @@
   </div>
 </div>
 
-<!-- Edit Borrow Modal (Redesigned with 2-Column Grid) -->
 <div class="modal" id="editBorrowModal" tabindex="-1" style="display:none;">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content p-3">
@@ -613,7 +607,7 @@
               </div>
             </div>
             
-            <!-- Right Column -->
+
             <div class="col-md-6">
               <div class="mb-3">
                 <label>Equipment</label>
@@ -657,7 +651,7 @@
   </div>
 </div>
 
-<!-- Edit Return Modal (Redesigned with 2-Column Grid) -->
+
 <div class="modal" id="editReturnModal" tabindex="-1" style="display:none;">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content p-3">
@@ -736,7 +730,6 @@
   </div>
 </div>
 
-<!-- Delete Return Confirmation Modal -->
 <div class="modal" id="deleteReturnModal" tabindex="-1" style="display:none;">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content p-3">
@@ -772,7 +765,6 @@
 
 <!-- Scripts -->
 <script>
-// Global modal instance for image viewer
 let imageViewerModalInstance = null;
 
 // Modal control functions
@@ -983,6 +975,5 @@ function downloadPDF(recordId, recordType) {
 }
 </script>
 
-<!-- Bootstrap JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 {% endblock %}

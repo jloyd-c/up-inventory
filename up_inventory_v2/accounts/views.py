@@ -17,7 +17,7 @@ def login_view(request):
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-            # Log the login action
+   
             log_action(
                 request,
                 'login',
@@ -39,14 +39,14 @@ def create_user_view(request):
 
     users = CustomUser.objects.all().order_by('-id')
 
-    # Apply search filter
+
     if query:
         users = users.filter(
             models.Q(email__icontains=query) | 
             models.Q(full_name__icontains=query)
         )
     
-    # Apply date filters
+ 
     if start_date and end_date:
         try:
             start_date = datetime.strptime(start_date, '%Y-%m-%d').date()
@@ -67,7 +67,7 @@ def create_user_view(request):
         except ValueError:
             messages.error(request, "Invalid date format. Please use YYYY-MM-DD.")
 
-    # Create user
+
     if request.method == 'POST' and 'create_user' in request.POST:
         form = CreateUserForm(request.POST)
         form.fields['staff'].queryset = StaffRecord.objects.filter(user_account_created=False)
@@ -94,7 +94,7 @@ def create_user_view(request):
                     staff.user_account_created = True
                     staff.save()
 
-                # Log user creation
+            
                 log_action(
                     request,
                     'user_create',
@@ -105,7 +105,7 @@ def create_user_view(request):
                 messages.success(request, "User created successfully.")
                 return redirect(f"{request.path}?{request.GET.urlencode()}")
         else:
-            # Log failed user creation attempt
+           
             log_action(
                 request,
                 'user_create',
@@ -115,7 +115,7 @@ def create_user_view(request):
             )
             messages.error(request, "Please fix the errors in the form.")
 
-    # Update user
+
     elif request.method == 'POST' and 'update_user_id' in request.POST:
         user_id = request.POST.get('update_user_id')
         user = get_object_or_404(CustomUser, id=user_id)
@@ -127,7 +127,7 @@ def create_user_view(request):
             old_staff = user.staff
             user = form.save()
             
-            # Log user update
+            
             log_details = f"Updated user account {old_email} to {user.email}"
             if old_staff != user.staff:
                 log_details += f", staff association changed from {old_staff.full_name if old_staff else 'None'} to {user.staff.full_name if user.staff else 'None'}"
@@ -142,7 +142,7 @@ def create_user_view(request):
             messages.success(request, "User updated successfully.")
             return redirect(f"{request.path}?{request.GET.urlencode()}")
         else:
-            # Log failed user update attempt
+           
             log_action(
                 request,
                 'user_update',
@@ -152,7 +152,7 @@ def create_user_view(request):
             )
             messages.error(request, "Please fix the errors in the form.")
 
-    # Delete user
+
     elif request.method == 'POST' and 'delete_user_id' in request.POST:
         user_id = request.POST.get('delete_user_id')
         try:
@@ -160,7 +160,7 @@ def create_user_view(request):
             email = user.email
             user.delete()
             
-            # Log user deletion
+           
             log_action(
                 request,
                 'user_delete',
@@ -170,7 +170,7 @@ def create_user_view(request):
             )
             messages.success(request, "User deleted successfully.")
         except CustomUser.DoesNotExist:
-            # Log failed deletion attempt
+           
             log_action(
                 request,
                 'user_delete',
@@ -186,7 +186,7 @@ def create_user_view(request):
         form.fields['staff'].queryset = StaffRecord.objects.filter(user_account_created=False)
 
     # Add pagination
-    paginator = Paginator(users, 15)  # Show 15 users per page
+    paginator = Paginator(users, 15)  
     try:
         users = paginator.page(page)
     except PageNotAnInteger:
@@ -204,7 +204,7 @@ def create_user_view(request):
 
 def logout_view(request):
     if request.user.is_authenticated:
-        # Log the logout action
+
         log_action(
             request,
             'logout',

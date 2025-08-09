@@ -2,12 +2,12 @@
 {% load static %}
 
 {% block content %}
-<!-- Font Awesome and Bootstrap CSS -->
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/devices.css' %}">
 
-<!-- Hidden div for server-side errors -->
+
 <div id="serverErrors" style="display:none;">
   {% if form.errors %}
     <div class="alert alert-danger">
@@ -286,7 +286,7 @@
           <button type="button" class="btn-close btn-close-white" onclick="closeErrorModal()"></button>
         </div>
         <div class="modal-body" id="errorModalContent">
-          <!-- Errors will be inserted here dynamically -->
+  
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="closeErrorModal()">Close</button>
@@ -351,14 +351,13 @@ function resetFilters() {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-  // Show error modal if there are server-side form errors
   const serverErrors = document.getElementById('serverErrors').innerHTML.trim();
   if (serverErrors) {
     document.getElementById('errorModalContent').innerHTML = serverErrors;
     document.getElementById('errorModal').style.display = 'flex';
   }
 
-  // Client-side search for users table
+  // Client-side search 
   document.getElementById('searchInput')?.addEventListener('input', function() {
     const filter = this.value.toLowerCase();
     document.querySelectorAll('#usersTable tbody tr').forEach(row => {
@@ -366,7 +365,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Autofill email and full name from selected staff
+
   const staffSelect = document.getElementById('staff_select');
   const emailInput = document.getElementById('id_email');
   const fullNameInput = document.getElementById('id_full_name');
@@ -379,7 +378,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Set up event listeners for edit/delete buttons
+
   document.querySelectorAll('.edit-btn').forEach(button => {
     button.addEventListener('click', () => {
       const tr = button.closest('tr');
@@ -394,7 +393,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Auto-close modals when clicking outside
+
   document.querySelectorAll('.modal').forEach(modal => {
     modal.addEventListener('click', function(e) {
       if (e.target === this) {
@@ -425,7 +424,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-// Helper function to show error modal
+
 function showErrorModal(content) {
   const errorModalEl = document.getElementById('errorModal');
   const errorModalContent = document.getElementById('errorModalContent');
